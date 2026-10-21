@@ -1,0 +1,322 @@
+'use strict';
+(() => {
+  const DATA = window.CIVICA_CONTENT;
+  const STORAGE_KEY = 'civica-progress-v1';
+  const app = document.getElementById('app');
+  const live = document.getElementById('live-status');
+  const iconPaths = {
+    home:'<path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V10Z"/><path d="M9 21v-7h6v7"/>',
+    book:'<path d="M3 5.5A2.5 2.5 0 0 1 5.5 3H21v17H5.5A2.5 2.5 0 0 1 3 17.5Z"/><path d="M3 17.5A2.5 2.5 0 0 1 5.5 15H21"/>',
+    compass:'<circle cx="12" cy="12" r="10"/><path d="m16.2 7.8-2.8 5.6-5.6 2.8 2.8-5.6 5.6-2.8Z"/>',
+    award:'<circle cx="12" cy="8" r="5"/><path d="m8.2 12-1 9 4.8-2.5 4.8 2.5-1-9"/>',
+    sources:'<path d="M20 7h-9M20 12h-9M20 17h-9M3 7h3M3 12h3M3 17h3"/><rect x="2" y="2" width="20" height="20" rx="3"/>',
+    settings:'<path d="M4 7h16M4 17h16M8 4v6M16 14v6"/>',
+    arrow:'<path d="M5 12h14m-6-6 6 6-6 6"/>',
+    back:'<path d="m12 19-7-7 7-7M5 12h14"/>',
+    link:'<path d="M14 5h5v5M10 14 19 5"/><path d="M19 13v6H5V5h6"/>',
+    shield:'<path d="M12 22c6-3 9-7 9-14l-9-5-9 5c0 7 3 11 9 14Z"/><path d="m8 12 3 3 5-6"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l4 2"/>',
+    check:'<path d="m5 12 4 4L19 6"/>',
+    search:'<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
+    speaker:'<path d="M5 9H2v6h3l5 4V5L5 9ZM14 9a4 4 0 0 1 0 6M17 6a8 8 0 0 1 0 12"/>',
+    stop:'<rect x="5" y="5" width="14" height="14" rx="2"/>',
+    stars:'<path d="m12 2 2.2 7.3L21 12l-6.8 2.7L12 22l-2.2-7.3L3 12l6.8-2.7L12 2Z"/>',
+    info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6m0-10v.2"/>',
+    copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
+    download:'<path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/>',
+    alert:'<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3v.2"/>'
+  };
+  function icon(name, extra='') { return `<svg aria-hidden="true" ${extra} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${iconPaths[name] || iconPaths.info}</svg>`; }
+  function esc(value) { return String(value).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+  function getLesson(id) { return DATA.lessons.find(l => l.id === id); }
+  function loadState() {
+    let raw = {};
+    try { raw = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}') || {}; } catch (_) { raw = {}; }
+    const safeCompleted = {};
+    if (raw.completed && typeof raw.completed === 'object' && !Array.isArray(raw.completed)) {
+      DATA.lessons.forEach(l => {
+        const saved = raw.completed[l.id];
+        if (saved && Number.isInteger(saved.best) && saved.best >= 0 && saved.best <= l.questions.length) {
+          safeCompleted[l.id] = { best:saved.best, attempts:Math.min(9999, Math.max(1, Number(saved.attempts) || 1)), updatedAt:String(saved.updatedAt || '') };
+        }
+      });
+    }
+    return {
+      completed:safeCompleted,
+      textScale:['normal','large','xlarge'].includes(raw.textScale) ? raw.textScale : 'normal',
+      contrast:raw.contrast === 'high' ? 'high' : 'normal'
+    };
+  }
+  let state = loadState();
+  let currentQuiz = null;
+  let lastResult = null;
+  let speaking = false;
+  let searchQuery = '';
+  function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { announce('O navegador não permitiu salvar o progresso. Confira as configurações de armazenamento.'); } }
+  function syncSettings() { document.documentElement.dataset.text = state.textScale; document.documentElement.dataset.contrast = state.contrast; }
+  function announce(message) { live.textContent = ''; setTimeout(() => { live.textContent = message; }, 20); }
+  function computed() {
+    const entries = Object.values(state.completed);
+    const count = entries.length;
+    const xp = entries.reduce((sum,e) => sum + 40 + e.best * 5, 0);
+    const level = Math.floor(xp / 100) + 1;
+    const levelXp = xp % 100;
+    return { count, xp, level, levelXp, remaining:100-levelXp, percent:levelXp, total:DATA.lessons.length };
+  }
+  function badgeFor(level) {
+    if (level >= 6) return 'Guardião do Conhecimento';
+    if (level >= 4) return 'Explorador Cívico';
+    if (level >= 2) return 'Cidadão Curioso';
+    return 'Aprendiz Cívico';
+  }
+  const nav = [
+    {hash:'#inicio',label:'Início',icon:'home'},
+    {hash:'#aulas',label:'Aulas',icon:'book'},
+    {hash:'#direitos',label:'Na prática',icon:'compass'},
+    {hash:'#conquistas',label:'Meu nível',icon:'award'}
+  ];
+  function linkNav(entry, active, mobile=false) {
+    return `<a class="${mobile?'':'nav-link '}${active?'active':''}" href="${entry.hash}" ${active?'aria-current="page"':''}>${icon(entry.icon)}<span>${esc(entry.label)}</span></a>`;
+  }
+  function chrome(main, active='#inicio') {
+    return `<header class="site-header"><div class="shell header-inner">
+      <a href="#inicio" class="brand" aria-label="Cívica — Página inicial"><img src="./assets/icon.svg" width="41" height="41" alt=""><span><span class="brand-title">cívica<span aria-hidden="true">.</span></span><small class="brand-line">Aprenda. Entenda. Participe.</small></span></a>
+      <nav class="nav-links" aria-label="Navegação principal">${nav.map(n=>linkNav(n,n.hash===active)).join('')}<a class="nav-link ${active==='#fontes'?'active':''}" href="#fontes">${icon('sources')}<span>Fontes</span></a></nav>
+      <div class="header-actions"><a class="icon-btn" href="#ajustes" aria-label="Ajustar letras e contraste" title="Acessibilidade">${icon('settings')}</a></div>
+    </div></header>
+    <main id="main-content" class="shell page" tabindex="-1">${main}</main>
+    <footer class="footer"><div class="shell footer-inner"><span>© Cívica · Projeto educativo independente · Gratuito e sem anúncios</span><div class="footer-links"><a href="#fontes">Fontes oficiais</a><a href="#sobre">Sobre o projeto</a><a href="#ajustes">Acessibilidade</a></div></div></footer>
+    <nav class="mobile-nav" aria-label="Navegação inferior">${nav.map(n=>linkNav(n,n.hash===active,true)).join('')}</nav>`;
+  }
+  function bar(percent,label='Progresso') {return `<div class="progress-track" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><div class="progress-fill" style="width:${Math.min(100,Math.max(0,percent))}%"></div></div>`;}
+  function progressPanel() {
+    const s = computed();
+    return `<section class="card progress-panel" aria-label="Seu progresso"><div class="mini-heading">${icon('award')} Minha jornada</div>
+      <div class="level-line"><div><div class="small subtle">${esc(badgeFor(s.level))}</div><span class="level-big">Nível ${s.level}</span></div><span class="source-pill">${icon('stars')} ${s.xp} XP</span></div>
+      ${bar(s.percent,'Progresso até o próximo nível')}<p class="small subtle" style="margin-top:8px">Faltam ${s.remaining} XP para o próximo nível.</p>
+      <div class="stats-row"><div><span class="stat-big">${s.count}/${s.total}</span><span class="stat-label">Aulas concluídas</span></div><div><span class="stat-big">${s.count*3}</span><span class="stat-label">Questões praticadas</span></div></div>
+    </section>`;
+  }
+  function sideInfo() {return `<section class="card side-info"><div class="mini-heading">${icon('shield')} Informação com origem</div><p>Toda aula traz referências oficiais. Você pode abrir os documentos e conferir por conta própria.</p><a class="inline-source small" href="#fontes" style="margin-top:12px">Biblioteca de fontes ${icon('arrow')}</a></section>`;}
+  function lessonCard(l) {
+    const done = !!state.completed[l.id];
+    return `<a class="card lesson-card" href="#aula/${encodeURIComponent(l.id)}" aria-label="Aula ${l.number}: ${esc(l.title)}${done?', concluída':''}">
+    <span class="lesson-badge" aria-hidden="true">${esc(l.icon)}</span><div class="lesson-card-main">
+      <div class="meta"><span>${esc(l.category)}</span><span>·</span><span>${l.minutes} min</span>${done?'<span class="status">✓ Concluída</span>':''}</div>
+      <h3>${esc(l.title)}</h3><p class="small subtle">${esc(l.subtitle)}</p></div><span class="arrow" aria-hidden="true">›</span></a>`;
+  }
+  function homePage() {
+    const s = computed();
+    const next = DATA.lessons.find(l => !state.completed[l.id]) || DATA.lessons[0];
+    const introduction = s.count === 0;
+    return `<div class="main-grid"><div class="main-stack">
+      <section class="hero"><div><div class="eyebrow">★ Sua escola gratuita de cidadania</div>
+        <h1>${introduction?'Entender política pode ser simples.':'Seu próximo passo começa aqui.'}</h1>
+        <p>${introduction?'Aprenda um pouquinho por vez, faça desafios e descubra onde conferir cada informação. No seu ritmo, sem complicação.':'Você já começou sua jornada! Continue com outra lição curta e descubra uma nova habilidade para a vida real.'}</p>
+        <a class="btn btn-primary" href="#aula/${encodeURIComponent(next.id)}">${introduction?'Começar minha primeira aula':'Continuar aprendendo'} ${icon('arrow')}</a>
+      </div><div class="hero-art" aria-hidden="true"><div class="art-circle">📖</div><div class="spark"></div><div class="spark"></div></div></section>
+      <section><div class="section-title"><div><div class="eyebrow">Escolha seu caminho</div><h2>O que você quer fazer?</h2></div></div>
+        <div class="grid-2">
+          <a href="#aulas" class="card quick-card"><span class="bubble" aria-hidden="true">🎓</span><span class="quick-title">Quero aprender</span><span class="quick-description">Aulas curtas, explicações fáceis e pequenos testes.</span><span class="quick-bottom">Ver todas as aulas ${icon('arrow')}</span></a>
+          <a href="#direitos" class="card quick-card"><span class="bubble" aria-hidden="true">🧭</span><span class="quick-title">Quero agir</span><span class="quick-description">Veja canais oficiais para cobrar e participar.</span><span class="quick-bottom">Ferramentas úteis ${icon('arrow')}</span></a>
+        </div></section>
+      <section><div class="section-title"><div><div class="eyebrow">Pequenas vitórias</div><h2>${introduction?'Comece por estas aulas':'Suas próximas aulas'}</h2></div><a href="#aulas">Ver todas ${icon('arrow')}</a></div>
+        <div class="lesson-list">${[...DATA.lessons.filter(l => !state.completed[l.id]),...DATA.lessons.filter(l => state.completed[l.id])].slice(0,3).map(lessonCard).join('')}</div>
+      </section>
+      <div class="trust-box"><span class="trust-icon" aria-hidden="true">🔐</span><div><strong>Sem conta. Sem anúncios. Sem classificação de opiniões políticas.</strong><p>Seu progresso fica salvo apenas neste navegador. Cada aula pode ser estudada de graça.</p></div></div>
+    </div><aside class="side-stack">${progressPanel()}${sideInfo()}</aside></div>`;
+  }
+  function lessonsPage() {
+    return `<section class="section-top"><div class="eyebrow">Academia do Cidadão · Temporada 1</div><h1>Aprenda uma coisa por vez.</h1><p>São ${DATA.lessons.length} aulas rápidas para começar do zero. Você pode seguir a ordem ou escolher o assunto que quiser.</p></section>
+      <div class="main-grid"><div><label class="sr-only" for="lesson-search">Pesquisar aula por assunto</label>
+       <div class="search-box">${icon('search')}<input id="lesson-search" type="search" placeholder="Procure um tema: voto, gastos, direitos..." value="${esc(searchQuery)}" autocomplete="off"></div>
+       <p class="search-count small subtle" id="search-count" aria-live="polite"></p><div class="lesson-list" id="lesson-list"></div>
+      </div><aside class="side-stack">${progressPanel()}${sideInfo()}</aside></div>`;
+  }
+  function renderFilteredLessons() {
+    const list = document.getElementById('lesson-list');
+    const count = document.getElementById('search-count');
+    if (!list) return;
+    const normalize = s => String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    const q = normalize(searchQuery.trim());
+    const lessons = DATA.lessons.filter(l => normalize([l.title,l.subtitle,l.category,l.intro].join(' ')).includes(q));
+    list.innerHTML = lessons.length ? lessons.map(lessonCard).join('') : `<div class="card empty-state"><h3>Nenhuma aula encontrada.</h3><p>Tente um assunto diferente. Você também pode ver todas as aulas apagando a busca.</p></div>`;
+    count.textContent = `${lessons.length} ${lessons.length===1?'aula encontrada':'aulas encontradas'}`;
+  }
+  function sourceLink(id) {
+    const s = DATA.sources[id]; if (!s) return '';
+    return `<a class="source-link" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir fonte: ${esc(s.title)} (abre em nova aba)">${icon('sources')}<span style="flex:1"><strong>${esc(s.title)}</strong><small>${esc(s.agency)} · Fonte oficial · Abre em nova aba</small></span>${icon('link','class="right-icon"')}</a>`;
+  }
+  function lessonPage(l) {
+    return `<div class="quiz-shell" style="max-width:880px"><div class="breadcrumb"><button type="button" data-action="go" data-target="#aulas">${icon('back')} Todas as aulas</button><span aria-hidden="true">/</span><span>Aula ${l.number}</span></div>
+      <section class="card lesson-cover"><div class="cover-icon" aria-hidden="true">${esc(l.icon)}</div><div><span class="chip">${esc(l.category)} · ${l.minutes} min</span><h1>${esc(l.title)}</h1><p>${esc(l.subtitle)}</p></div></section>
+      <section class="card story-card"><div class="section-title"><div><span class="eyebrow">Vamos entender</span><h2>Explicando de forma simples</h2></div></div>
+        <p>${esc(l.intro)}</p>
+        <div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary" type="button" data-action="audio" data-id="${esc(l.id)}">${icon(speaking?'stop':'speaker')} ${speaking?'Parar leitura':'Ouvir esta aula'}</button><a class="btn btn-soft" href="#fontes">${icon('sources')} Consultar fontes</a></div>
+        <div class="fact-list">${l.facts.map((f,i)=>`<div class="fact"><span class="fact-index">${i+1}</span><div><h3>${esc(f.title)}</h3><p>${esc(f.text)}</p></div></div>`).join('')}</div>
+        <div class="example-box"><strong>💡 Exemplo do dia a dia</strong><p>${esc(l.example)}</p></div>
+      </section>
+      <section class="mission"><span style="font-size:1.65rem" aria-hidden="true">🧭</span><div><strong>Missão prática (opcional)</strong><p>${esc(l.mission)}</p><p class="tiny subtle" style="margin-top:7px">A tarefa prática não é monitorada pelo aplicativo e não pede dados pessoais.</p></div></section>
+      <section class="card source-section" aria-label="Fontes da aula"><h2>${icon('shield')} Confira as fontes</h2><p>Não precisa confiar só na explicação. Abra os documentos originais para confirmar o que aprendeu.</p>${l.sourceIds.map(sourceLink).join('')}</section>
+      <div class="btn-row" style="margin-top:20px"><button class="btn btn-primary" data-action="start-quiz" data-id="${esc(l.id)}">Fazer a miniprova · 3 perguntas ${icon('arrow')}</button><a href="#aulas" class="btn btn-secondary">Escolher outra aula</a></div>
+      ${state.completed[l.id]?`<p class="small subtle" style="margin-top:12px">✓ Você já concluiu esta aula. Refazer a prova pode melhorar sua melhor pontuação, mas não duplica recompensas.</p>`:''}
+    </div>`;
+  }
+  function quizPage(l) {
+    if (!currentQuiz || currentQuiz.id !== l.id) {
+      return `<div class="quiz-shell"><div class="card empty-state"><h2>Vamos começar sua prova?</h2><p>São três perguntas e você pode consultar as fontes sempre que quiser.</p><button class="btn btn-primary" data-action="start-quiz" data-id="${esc(l.id)}">Começar miniprova ${icon('arrow')}</button></div></div>`;
+    }
+    const q = l.questions[currentQuiz.index];
+    const checked = currentQuiz.checked;
+    const chosen = currentQuiz.selected;
+    const good = chosen === q.correct;
+    const source = DATA.sources[q.sourceId];
+    return `<div class="quiz-shell"><div class="breadcrumb"><button data-action="go" data-target="#aula/${encodeURIComponent(l.id)}">${icon('back')} Voltar para a aula</button></div>
+      <div class="quiz-step"><span>Miniprova: ${esc(l.title)}</span><strong>${currentQuiz.index+1} de ${l.questions.length}</strong></div>
+      <div class="quiz-progress">${bar(Math.round(((currentQuiz.index+1)/l.questions.length)*100),'Andamento da miniprova')}</div>
+      <section class="card quiz-card"><span class="eyebrow">Pergunta ${currentQuiz.index+1}</span><h1>${esc(q.prompt)}</h1>
+        <div class="answer-list" role="group" aria-label="Alternativas da pergunta">${q.options.map((option,i)=>{
+          const classes=['answer'];
+          if (chosen===i) classes.push('selected');
+          if (checked && i===q.correct) classes.push('correct');
+          if (checked && chosen===i && !good) classes.push('incorrect');
+          return `<button type="button" class="${classes.join(' ')}" data-action="answer" data-index="${i}" aria-pressed="${chosen===i}" ${checked?'disabled':''}><span class="answer-letter">${'ABC'[i]}</span><span>${esc(option)}</span></button>`;
+        }).join('')}</div>
+        ${checked?`<div class="feedback ${good?'':'error'}" role="status"><strong>${good?'✓ Muito bem!':'↻ Boa tentativa. Veja a explicação:'}</strong><p>${esc(q.why)}</p></div>`:''}
+        <div class="quiz-sources"><a class="inline-source" href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${icon('sources')} Ver fonte oficial desta pergunta ${icon('link')}</a></div>
+        <div class="btn-row">${checked ? `<button type="button" class="btn btn-primary" data-action="next-question">${currentQuiz.index===l.questions.length-1?'Ver meu resultado':'Próxima pergunta'} ${icon('arrow')}</button>` : `<button type="button" class="btn btn-primary" data-action="check-answer" ${chosen===null?'disabled':''}>Conferir resposta ${icon('check')}</button>`}</div>
+      </section><p class="small subtle" style="margin-top:17px;text-align:center">Você pode errar sem perder XP já conquistado. O importante é aprender.</p></div>`;
+  }
+  function resultPage(l) {
+    const stored = state.completed[l.id];
+    if (!stored) return `<div class="card empty-state"><p>Esta aula ainda não foi concluída.</p><a class="btn btn-primary" href="#aula/${esc(l.id)}">Abrir aula</a></div>`;
+    const result = lastResult && lastResult.id===l.id ? lastResult : {correct:stored.best,gain:0,improved:false};
+    const total=l.questions.length; const s=computed();
+    return `<div class="quiz-shell"><div class="card results-card"><div class="results-emoji" aria-hidden="true">🎉</div><div class="eyebrow">Miniprova concluída!</div><h1>Mais uma conquista na sua jornada.</h1><p>Você estudou um novo assunto e pode revisar sempre que quiser.</p>
+      <div class="score-number">${result.correct}/${total}</div><p>respostas corretas nesta tentativa</p>
+      <div class="rank-pill">${icon('stars')} ${result.gain>0?`+${result.gain} XP nesta tentativa`:'Progresso salvo ✓'} · Nível ${s.level}</div>
+      <div class="notice" style="text-align:left;margin-top:16px"><strong>📚 A fonte continua disponível</strong>Você pode conferir os documentos oficiais na aula, inclusive depois de concluir a prova.</div>
+      <div class="btn-row"><a class="btn btn-primary" href="#aulas">Continuar aprendendo ${icon('arrow')}</a><button class="btn btn-secondary" data-action="start-quiz" data-id="${esc(l.id)}">Refazer a prova</button><button class="btn btn-secondary" data-action="share">${icon('copy')} Compartilhar conquista</button></div>
+    </div></div>`;
+  }
+  const tools = [
+    {icon:'📊',title:'Consultar despesas federais',description:'Pesquise orçamento e despesas do governo federal no Portal da Transparência.',sourceId:'cgu_despesas',lesson:'orcamento'},
+    {icon:'🏛️',title:'Ver gastos de deputados',description:'Consulte despesas de deputados federais na fonte oficial da Câmara.',sourceId:'camara_gastos',lesson:'gastos'},
+    {icon:'📨',title:'Pedir uma informação',description:'Entenda como fazer pedidos federais de acesso à informação pelo Informa.BR.',sourceId:'cgu_informabr',lesson:'informacao'},
+    {icon:'📣',title:'Registrar manifestação',description:'Encontre o Fala.BR para reclamações, sugestões e outras manifestações de ouvidoria.',sourceId:'cgu_ouvidoria',lesson:'ouvidoria'},
+    {icon:'🗳️',title:'Consultar serviços eleitorais',description:'Veja informações oficiais do TSE sobre título e situação eleitoral.',sourceId:'tse_voto',lesson:'voto'},
+    {icon:'🌱',title:'Participar do e-Cidadania',description:'Conheça ideias legislativas disponíveis para leitura e apoio.',sourceId:'senado_ecidadania',lesson:'participacao'}
+  ];
+  function toolsPage(){
+    return `<section class="section-top"><div class="eyebrow">Cidadania em ação</div><h1>O que você precisa resolver?</h1><p>Use atalhos para órgãos oficiais. O Cívica explica cada ferramenta, mas não substitui portais do governo nem envia solicitações por você.</p></section>
+      <div class="tool-grid">${tools.map(t=>{const s=DATA.sources[t.sourceId];return `<article class="card tool-card"><span class="tool-emoji" aria-hidden="true">${t.icon}</span><h3>${esc(t.title)}</h3><p>${esc(t.description)}</p><a class="btn btn-primary btn-full" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">Abrir site oficial ${icon('link')}</a><a class="small inline-source" href="#aula/${t.lesson}">Aprender antes de acessar ${icon('arrow')}</a></article>`}).join('')}</div>
+      <div class="notice" style="margin-top:20px"><strong>Atenção aos endereços.</strong>Portais federais não são responsáveis por todos os serviços municipais ou estaduais. Confira se o órgão escolhido é competente antes de enviar dados pessoais.</div>`;
+  }
+  function achievementsPage(){
+    const s=computed();
+    const rewards=[{limit:1,emoji:'🌱',name:'Primeira semente',description:'Concluir a primeira aula.'},{limit:3,emoji:'🔍',name:'Cidadão curioso',description:'Concluir 3 aulas.'},{limit:5,emoji:'📚',name:'Explorador do conhecimento',description:'Concluir 5 aulas.'},{limit:10,emoji:'🏆',name:'Primeira temporada',description:'Concluir as 10 aulas.'}];
+    return `<div class="section-top"><div class="eyebrow">Minha jornada</div><h1>Seu esforço merece ser visto.</h1><p>XP representa atividades de aprendizagem concluídas — não mede inteligência nem torna ninguém automaticamente certo numa discussão.</p></div>
+      <div class="main-grid"><div class="main-stack"><section class="card padding-card"><div class="eyebrow">${esc(badgeFor(s.level))}</div><h2 style="margin:7px 0 14px">Nível ${s.level} · ${s.xp} XP</h2>${bar(s.percent,'Progresso do seu nível')}<p class="small subtle" style="margin-top:12px">Mais ${s.remaining} XP para alcançar o próximo nível.</p><div class="stats-row"><div><span class="stat-big">${s.count}</span><span class="stat-label">Aulas concluídas</span></div><div><span class="stat-big">${s.total-s.count}</span><span class="stat-label">Aulas para descobrir</span></div></div></section>
+      <section><h2>Suas medalhas</h2><div class="achievements">${rewards.map(r=>`<div class="achievement ${s.count>=r.limit?'':'locked'}"><span class="emoji" aria-hidden="true">${s.count>=r.limit?r.emoji:'🔒'}</span><div><strong>${esc(r.name)}</strong><p>${esc(r.description)}</p><span class="tiny">${s.count>=r.limit?'✓ Conquistada':'Ainda não conquistada'}</span></div></div>`).join('')}</div></section>
+      <button class="btn btn-primary" data-action="share">${icon('copy')} Compartilhar meu nível</button></div><aside class="side-stack">${sideInfo()}<section class="card side-info"><h3>Revisar também conta</h3><p>Você pode repetir qualquer aula e melhorar a pontuação sem punição por erros.</p><a class="inline-source small" href="#aulas" style="margin-top:12px">Ver aulas ${icon('arrow')}</a></section></aside></div>`;
+  }
+  function sourcesPage(){
+    return `<section class="section-top"><div class="eyebrow">Biblioteca pública</div><h1>Confira cada informação.</h1><p>Estas são as fontes utilizadas pelas aulas da primeira temporada. O conteúdo explicativo foi resumido; os links levam aos documentos e serviços originais.</p></section>
+      <div class="notice" style="margin-bottom:18px"><strong>Última revisão editorial: ${DATA.updatedAt}</strong>Leis, regras e endereços podem mudar. Confira a publicação original antes de usar uma informação em decisões ou solicitações oficiais. Os links externos precisam de internet.</div>
+      <div class="card source-section"><h2>Fontes oficiais da primeira temporada</h2><p>Abra o documento ou portal que deseja conferir.</p>${Object.keys(DATA.sources).map(sourceLink).join('')}</div>`;
+  }
+  function settingsPage(){return `<section class="section-top"><div class="eyebrow">Para aprender com conforto</div><h1>Ajustes de acessibilidade</h1><p>Escolha como prefere ler. As opções ficam salvas neste navegador e podem ser alteradas a qualquer momento.</p></section>
+    <section class="card padding-card"><h2>Tamanho das letras</h2><div class="setting-row"><span class="subtle small">Aumentar as letras e espaços do conteúdo</span><div class="segmented" role="group" aria-label="Tamanho das letras">
+    ${[['normal','Normal'],['large','Grande'],['xlarge','Muito grande']].map(([v,name])=>`<button type="button" aria-pressed="${state.textScale===v}" data-action="text-size" data-value="${v}">${name}</button>`).join('')}</div></div>
+    <h2 style="margin-top:25px">Contraste</h2><div class="setting-row"><span class="subtle small">Aumentar o contraste das telas e botões</span><div class="segmented" role="group" aria-label="Contraste">
+    ${[['normal','Padrão'],['high','Alto contraste']].map(([v,name])=>`<button type="button" aria-pressed="${state.contrast===v}" data-action="contrast" data-value="${v}">${name}</button>`).join('')}</div></div>
+    <div class="notice" style="margin-top:22px"><strong>Leitura em voz alta</strong>Dentro de cada aula, toque em “Ouvir esta aula”. O recurso usa a voz disponível no seu celular ou computador. A qualidade depende do navegador e da voz instalada.</div></section>
+    <section class="card padding-card" style="margin-top:18px"><h2>Seu progresso</h2><p class="small subtle" style="margin:10px 0">Suas respostas e conquistas são armazenadas neste dispositivo, sem envio para servidores. Para trocar de navegador, exporte um arquivo e importe-o no outro.</p>
+    <div class="btn-row"><button class="btn btn-secondary" data-action="export">${icon('download')} Exportar progresso</button><label class="btn btn-secondary" for="import-progress" style="cursor:pointer">${icon('book')} Importar progresso</label><input id="import-progress" type="file" accept="application/json,.json" class="sr-only" aria-label="Selecionar arquivo de progresso"></div>
+    <div style="margin-top:24px"><button class="btn btn-secondary" data-action="reset">Apagar todo o progresso</button></div></section>`;}
+  function aboutPage(){return `<section class="section-top"><div class="eyebrow">Sobre o projeto</div><h1>Uma escola de cidadania para todos.</h1><p>O Cívica nasce da ideia de que aprender como a sociedade funciona não deveria exigir experiência política, dinheiro nem paciência para navegar em sites difíceis.</p></section>
+    <div class="main-stack" style="max-width:820px"><div class="card padding-card"><h2>O que defendemos</h2><div class="fact-list"><div class="fact"><span class="fact-index">1</span><div><h3>Acesso universal</h3><p>Conteúdo gratuito, sem publicidade e com linguagem clara, pensado especialmente em quem está começando.</p></div></div><div class="fact"><span class="fact-index">2</span><div><h3>Fontes rastreáveis</h3><p>Explicações e respostas apontam para documentos públicos, com data da revisão editorial e acesso aos links originais.</p></div></div><div class="fact"><span class="fact-index">3</span><div><h3>Independência política</h3><p>Sem endossar partidos, candidatos ou posições. As provas abordam fatos verificáveis e funcionamento institucional.</p></div></div><div class="fact"><span class="fact-index">4</span><div><h3>Privacidade</h3><p>Esta versão não pede nome, CPF, email ou cadastro. O progresso fica neste navegador e pode ser exportado ou apagado.</p></div></div></div></div>
+    <div class="callout"><h3>O Cívica ainda está começando.</h3><p>A versão v0.1.0-alpha oferece educação básica e atalhos oficiais. Ainda não consulta automaticamente políticos, processos judiciais ou despesas individuais. Seu conteúdo pode ser aperfeiçoado e deve passar por revisões editoriais contínuas.</p><a class="btn btn-primary" href="#aulas">Explorar aulas ${icon('arrow')}</a></div></div>`;}
+  function route() {
+    const hash = decodeURIComponent(location.hash.slice(1) || 'inicio');
+    const [view,...rest] = hash.split('/'); const id=rest.join('/');
+    return {view,id};
+  }
+  function stopAudio() {if ('speechSynthesis' in window) window.speechSynthesis.cancel(); speaking=false;}
+  let lastRouteKey='';
+  function render() {
+    const r=route(); const key = `${r.view}/${r.id}`;
+    if (key !== lastRouteKey) { stopAudio(); lastRouteKey=key; }
+    syncSettings();
+    let main,active='#inicio';
+    if(r.view==='inicio') main=homePage();
+    else if(r.view==='aulas'){main=lessonsPage();active='#aulas';}
+    else if(r.view==='aula' && getLesson(r.id)){main=lessonPage(getLesson(r.id));active='#aulas';}
+    else if(r.view==='quiz' && getLesson(r.id)){main=quizPage(getLesson(r.id));active='#aulas';}
+    else if(r.view==='resultado' && getLesson(r.id)){main=resultPage(getLesson(r.id));active='#aulas';}
+    else if(r.view==='direitos'){main=toolsPage();active='#direitos';}
+    else if(r.view==='conquistas'){main=achievementsPage();active='#conquistas';}
+    else if(r.view==='fontes'){main=sourcesPage();active='#fontes';}
+    else if(r.view==='ajustes'){main=settingsPage();active='#ajustes';}
+    else if(r.view==='sobre'){main=aboutPage();active='#sobre';}
+    else {if (location.hash !== '#inicio') {location.replace('#inicio');return;}main=homePage();}
+    app.innerHTML=chrome(main,active);
+    if (r.view==='aulas') renderFilteredLessons();
+    document.title = `${({inicio:'Início',aulas:'Aulas',aula:getLesson(r.id)?.title,quiz:'Miniprova',resultado:'Resultado',direitos:'Na prática',conquistas:'Meu nível',fontes:'Fontes',ajustes:'Ajustes',sobre:'Sobre'}[r.view]||'Cívica')} · Cívica`;
+  }
+  function navigate(hash){if(location.hash===hash){render();window.scrollTo({top:0,behavior:'instant'});}else location.hash=hash;}
+  window.addEventListener('hashchange',()=>{render();window.scrollTo({top:0,behavior:'instant'});const heading=document.querySelector('#main-content h1');if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}});
+  function beginQuiz(id) {const l=getLesson(id);if(!l)return;stopAudio();currentQuiz={id,index:0,selected:null,checked:false,correct:0};lastResult=null;navigate(`#quiz/${encodeURIComponent(id)}`);}
+  function checkAnswer() {if(!currentQuiz||currentQuiz.checked||currentQuiz.selected===null)return;const l=getLesson(currentQuiz.id);if(currentQuiz.selected===l.questions[currentQuiz.index].correct)currentQuiz.correct++;currentQuiz.checked=true;render();announce(currentQuiz.selected===l.questions[currentQuiz.index].correct?'Resposta correta':'Resposta incorreta. Leia a explicação.');}
+  function nextQuestion(){if(!currentQuiz || !currentQuiz.checked)return;const l=getLesson(currentQuiz.id);if(currentQuiz.index<l.questions.length-1){currentQuiz.index++;currentQuiz.checked=false;currentQuiz.selected=null;render();announce(`Pergunta ${currentQuiz.index+1} de ${l.questions.length}`);return;}
+    const before=computed().xp;
+    const previous=state.completed[l.id];
+    const best=Math.max(previous?.best??0,currentQuiz.correct);
+    state.completed[l.id]={best,attempts:(previous?.attempts||0)+1,updatedAt:new Date().toISOString().slice(0,10)};
+    saveState();
+    lastResult={id:l.id,correct:currentQuiz.correct,gain:computed().xp-before,improved:best>(previous?.best??-1)};
+    currentQuiz=null;
+    navigate(`#resultado/${encodeURIComponent(l.id)}`);
+  }
+  async function share(){const s=computed();const txt=`🏅 Sou nível ${s.level} (${badgeFor(s.level)}) no Cívica!\nJá concluí ${s.count} de ${s.total} aulas de cidadania.\nAprender política é aprender a participar.\nProjeto educativo gratuito, com fontes oficiais.`;
+    try{await navigator.clipboard.writeText(txt);announce('Mensagem copiada! Cole no WhatsApp ou onde quiser.');}
+    catch(_){const t=document.createElement('textarea');t.value=txt;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();announce(ok?'Mensagem copiada!':'Não foi possível copiar. Verifique a permissão do navegador.');}}
+  function speakLesson(id){
+    if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){announce('Leitura em voz alta indisponível neste navegador.');return;}
+    if(speaking){stopAudio();render();return;}
+    const l=getLesson(id);if(!l)return;
+    const txt=[l.title,l.subtitle,l.intro,...l.facts.flatMap(f=>[f.title,f.text]),'Exemplo:',l.example,'Missão prática opcional:',l.mission].join('. ');
+    window.speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(txt);u.lang='pt-BR';u.rate=.88;u.pitch=1;
+    const pt=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('pt-br'));
+    if(pt)u.voice=pt;
+    u.onend=()=>{speaking=false;const button=document.querySelector('[data-action="audio"]');if(button){button.innerHTML=`${icon('speaker')} Ouvir esta aula`;}};
+    u.onerror=()=>{speaking=false;announce('Não foi possível usar a voz do aparelho.');const button=document.querySelector('[data-action="audio"]');if(button)button.innerHTML=`${icon('speaker')} Ouvir esta aula`;};
+    speaking=true;window.speechSynthesis.speak(u);render();
+  }
+  function exportProgress(){const blob=new Blob([JSON.stringify({format:'civica-v1',exportedAt:new Date().toISOString(),progress:state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='civica-meu-progresso.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);announce('Arquivo de progresso preparado para baixar.');}
+  async function importProgress(file){if(!file)return;try{if(file.size>100000)throw Error('Arquivo grande demais');const parsed=JSON.parse(await file.text());if(parsed.format!=='civica-v1'||!parsed.progress||typeof parsed.progress!=='object')throw Error('Formato inválido');if(!confirm('Importar este arquivo? O progresso salvo neste navegador será substituído.'))return;
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(parsed.progress));state=loadState();render();announce('Progresso importado com sucesso.');}
+    catch(_){alert('Não foi possível importar. Selecione um arquivo de progresso exportado pelo Cívica.');}}
+  app.addEventListener('input', e=>{if(e.target.id==='lesson-search'){searchQuery=e.target.value;renderFilteredLessons();}});
+  app.addEventListener('change',e=>{if(e.target.id==='import-progress'){importProgress(e.target.files?.[0]);e.target.value='';}});
+  app.addEventListener('click',e=>{
+    const btn=e.target.closest('[data-action]');if(!btn)return;
+    const act=btn.dataset.action;
+    if(act==='go')navigate(btn.dataset.target);
+    else if(act==='start-quiz')beginQuiz(btn.dataset.id);
+    else if(act==='answer' && currentQuiz && !currentQuiz.checked){currentQuiz.selected=Number(btn.dataset.index);render();const answer=document.querySelector(`[data-action="answer"][data-index="${currentQuiz.selected}"]`);if(answer)answer.focus();}
+    else if(act==='check-answer')checkAnswer();
+    else if(act==='next-question')nextQuestion();
+    else if(act==='share')share();
+    else if(act==='audio')speakLesson(btn.dataset.id);
+    else if(act==='text-size'){state.textScale=btn.dataset.value;saveState();render();announce('Tamanho de letra atualizado.');}
+    else if(act==='contrast'){state.contrast=btn.dataset.value;saveState();render();announce('Contraste atualizado.');}
+    else if(act==='export')exportProgress();
+    else if(act==='reset' && confirm('Apagar todas as aulas concluídas e os pontos deste navegador? Esta ação não pode ser desfeita.')){state.completed={};saveState();render();announce('Progresso apagado.');}
+  });
+  render();
+  if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
+    window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));
+  }
+})();
