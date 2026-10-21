@@ -1,21 +1,26 @@
-# Cívica v0.2.0-alpha — Explica Bem Fácil
+# Cívica v0.3.0-alpha — Conheça Seus Direitos
 
-**Atualização focada em acessibilidade e aprendizado visual, sem anúncios e sem cadastro.**
+A Cívica cresce sem perder a proposta original: ser uma escola gratuita, apartidária e simples de usar, com cada afirmação importante ligada a fontes oficiais.
 
-Nesta versão, a Cívica passa a oferecer:
+## Destaques
 
-- 🌗 **Modo escuro, claro e automático**, com contraste e tamanho de letra configuráveis.
-- 💡 **Explica Bem Fácil**: uma segunda explicação para cada uma das dez aulas, com exemplos do cotidiano.
-- 📖 **Minidicionário**: palavras difíceis pontilhadas — toque para ler o significado e conferir a fonte oficial.
-- 🗣️ **Leitura em voz alta melhorada**: ouvir, pausar, continuar, parar, ajustar velocidade e escolher entre as vozes disponíveis no aparelho.
-- 🖼️ **Quadrinhos por aula**: pequenos roteiros ilustrativos e uma HQ com quatro imagens na aula "Prefeito ou vereador?".
-- 🛡️ **Fontes mantidas** em todas as aulas e perguntas, e agora também no minidicionário.
+- **Nova trilha com 8 aulas** sobre direitos de consumidores, pessoas idosas e usuários da saúde.
+- Agora são **18 aulas, 54 questões**, XP, níveis, conquistas e progresso salvo.
+- **Explica bem fácil**, exemplos cotidianos, minidicionário e quadrinhos nas novas aulas.
+- **HQ ilustrada em quatro quadros** sobre solicitação de benefício em transporte interestadual.
+- **Constituição editorial** com oito compromissos públicos de neutralidade, critérios de fontes, acessibilidade e privacidade.
+- **Ouvidoria do Cívica** para escrever, copiar ou baixar pedidos de revisão e opiniões. Pronta para habilitar **Google Forms** depois de configurar `config.js`.
+- Aulas agora incluem o botão **Pedir revisão desta aula**.
+- Mantidos modo claro/escuro, controles de voz, biblioteca de fontes, PWA e progresso da v0.2.
 
-A versão mantém as 10 aulas, 30 perguntas, XP, conquistas, exportação de progresso e compatibilidade com GitHub Pages.
+## Atenção
 
-**Observações:** a qualidade do áudio depende do dispositivo; nem toda plataforma suporta todas as ações. As explicações simples e ilustrações são didáticas e não substituem documentos oficiais. O progresso v0.1 é compatível.
+**Ouvidoria não envia nada até ser configurado um Google Forms válido.** O app informa isso visivelmente.
 
-### Publicação
-- Tag: `v0.2.0-alpha`
-- Branch: `feat/civica-v0.2-explica-bem-facil`
-- Commit sugerido: `feat: adiciona modo facil, glossario, dark mode, voz e quadrinhos`
+Leis e procedimentos podem mudar: verifique os links oficiais antes de agir. Os exemplos e quadrinhos são ilustrativos e não representam atendimentos reais.
+
+## GitHub
+
+Branch: `feat/civica-v0.3-conheca-seus-direitos`  
+Tag: `v0.3.0-alpha`  
+Commit: `feat: adiciona trilha de direitos, principios editoriais e ouvidoria configuravel`

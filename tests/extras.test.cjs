@@ -34,7 +34,7 @@ test('glossário só aponta para referências existentes',()=>{
 test('arquivos de publicação PWA e roteiros estão presentes',()=>{
   for(const pathName of ['index.html','app.js','content.js','extras.js','styles.css','sw.js','manifest.webmanifest','assets/icon-192.png','assets/icon-512.png']) assert.ok(fs.existsSync(path.join(root,pathName)),pathName);
   const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');
-  assert.match(sw,/civica-v0\.2\.0-alpha/);assert.match(sw,/extras\.js/);
+  assert.match(sw,/civica-v0\.3\.0-alpha/);assert.match(sw,/extras\.js/);
   const app=fs.readFileSync(path.join(root,'app.js'),'utf8');
   assert.match(app,/civica-progress-v1/);assert.match(app,/glossaryOpen/);assert.match(app,/voiceSpeedSelect/);
 });

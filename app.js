@@ -124,7 +124,7 @@
   const nav = [
     {hash:'#inicio',label:'Início',icon:'home'},
     {hash:'#aulas',label:'Aulas',icon:'book'},
-    {hash:'#direitos',label:'Na prática',icon:'compass'},
+    {hash:'#trilha-direitos',label:'Direitos',icon:'shield'},
     {hash:'#conquistas',label:'Meu nível',icon:'award'}
   ];
   function linkNav(entry, active, mobile=false) {
@@ -133,11 +133,11 @@
   function chrome(main, active='#inicio') {
     return `<header class="site-header"><div class="shell header-inner">
       <a href="#inicio" class="brand" aria-label="Cívica — Página inicial"><img src="./assets/icon.svg" width="41" height="41" alt=""><span><span class="brand-title">cívica<span aria-hidden="true">.</span></span><small class="brand-line">Aprenda. Entenda. Participe.</small></span></a>
-      <nav class="nav-links" aria-label="Navegação principal">${nav.map(n=>linkNav(n,n.hash===active)).join('')}<a class="nav-link ${active==='#fontes'?'active':''}" href="#fontes">${icon('sources')}<span>Fontes</span></a></nav>
+      <nav class="nav-links" aria-label="Navegação principal">${nav.map(n=>linkNav(n,n.hash===active)).join('')}<a class="nav-link ${active==='#fontes'?'active':''}" href="#fontes">${icon('sources')}<span>Fontes</span></a><a class="nav-link ${active==='#principios'?'active':''}" href="#principios">${icon('shield')}<span>Princípios</span></a></nav>
       <div class="header-actions"><button type="button" class="icon-btn" data-action="toggle-theme" aria-label="Alternar tema claro ou escuro" title="Alternar tema">${icon(document.documentElement.dataset.theme==='dark'?'sun':'moon')}</button><a class="icon-btn" href="#ajustes" aria-label="Ajustar letras e contraste" title="Acessibilidade">${icon('settings')}</a></div>
     </div></header>
     <main id="main-content" class="shell page" tabindex="-1">${main}</main>
-    <footer class="footer"><div class="shell footer-inner"><span>© Cívica · Projeto educativo independente · Gratuito e sem anúncios</span><div class="footer-links"><a href="#fontes">Fontes oficiais</a><a href="#sobre">Sobre o projeto</a><a href="#ajustes">Acessibilidade</a></div></div></footer>
+    <footer class="footer"><div class="shell footer-inner"><span>© Cívica · Projeto educativo independente · Gratuito e sem anúncios</span><div class="footer-links"><a href="#fontes">Fontes oficiais</a><a href="#principios">Princípios</a><a href="#ouvidoria">Ouvidoria do Cívica</a><a href="#sobre">Sobre</a><a href="#ajustes">Acessibilidade</a></div></div></footer>
     <nav class="mobile-nav" aria-label="Navegação inferior">${nav.map(n=>linkNav(n,n.hash===active,true)).join('')}</nav>`;
   }
   function bar(percent,label='Progresso') {return `<div class="progress-track" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><div class="progress-fill" style="width:${Math.min(100,Math.max(0,percent))}%"></div></div>`;}
@@ -170,16 +170,16 @@
       <section><div class="section-title"><div><div class="eyebrow">Escolha seu caminho</div><h2>O que você quer fazer?</h2></div></div>
         <div class="grid-2">
           <a href="#aulas" class="card quick-card"><span class="bubble" aria-hidden="true">🎓</span><span class="quick-title">Quero aprender</span><span class="quick-description">Aulas curtas, explicações fáceis e pequenos testes.</span><span class="quick-bottom">Ver todas as aulas ${icon('arrow')}</span></a>
-          <a href="#direitos" class="card quick-card"><span class="bubble" aria-hidden="true">🧭</span><span class="quick-title">Quero agir</span><span class="quick-description">Veja canais oficiais para cobrar e participar.</span><span class="quick-bottom">Ferramentas úteis ${icon('arrow')}</span></a>
-        </div></section>
+          <a href="#trilha-direitos" class="card quick-card"><span class="bubble" aria-hidden="true">🛡️</span><span class="quick-title">Conhecer meus direitos</span><span class="quick-description">Aprenda direitos do dia a dia com exemplos e quadrinhos.</span><span class="quick-bottom">Descobrir direitos ${icon('arrow')}</span></a>
+        </div><div class="right-now-link"><a href="#direitos">🧭 Preciso resolver algo? Ver ferramentas e serviços oficiais →</a></div></section>
       <section><div class="section-title"><div><div class="eyebrow">Pequenas vitórias</div><h2>${introduction?'Comece por estas aulas':'Suas próximas aulas'}</h2></div><a href="#aulas">Ver todas ${icon('arrow')}</a></div>
         <div class="lesson-list">${[...DATA.lessons.filter(l => !state.completed[l.id]),...DATA.lessons.filter(l => state.completed[l.id])].slice(0,3).map(lessonCard).join('')}</div>
       </section>
-      <div class="trust-box"><span class="trust-icon" aria-hidden="true">🔐</span><div><strong>Sem conta. Sem anúncios. Sem classificação de opiniões políticas.</strong><p>Seu progresso fica salvo apenas neste navegador. Cada aula pode ser estudada de graça.</p></div></div>
+      <div class="editorial-teaser"><strong>🕊️ Independente de partidos e candidatos.</strong><p>Conheça nossas regras de neutralidade e peça revisão de qualquer conteúdo.</p><a class="btn btn-secondary" href="#principios">Ler princípios</a><a class="btn btn-secondary" href="#ouvidoria">Sugerir correção</a></div><div class="trust-box"><span class="trust-icon" aria-hidden="true">🔐</span><div><strong>Sem conta. Sem anúncios. Sem classificação de opiniões políticas.</strong><p>Seu progresso fica salvo apenas neste navegador. Cada aula pode ser estudada de graça.</p></div></div>
     </div><aside class="side-stack">${progressPanel()}${sideInfo()}</aside></div>`;
   }
   function lessonsPage() {
-    return `<section class="section-top"><div class="eyebrow">Academia do Cidadão · Temporada 1</div><h1>Aprenda uma coisa por vez.</h1><p>São ${DATA.lessons.length} aulas rápidas para começar do zero. Você pode seguir a ordem ou escolher o assunto que quiser.</p></section>
+    return `<section class="section-top"><div class="eyebrow">Academia do Cidadão · Temporadas 1 e 2</div><h1>Aprenda uma coisa por vez.</h1><p>São ${DATA.lessons.length} aulas rápidas para começar do zero. Você pode escolher o assunto que quiser. <a href="#trilha-direitos">Conheça a nova trilha de direitos.</a></p></section>
       <div class="main-grid"><div><label class="sr-only" for="lesson-search">Pesquisar aula por assunto</label>
        <div class="search-box">${icon('search')}<input id="lesson-search" type="search" placeholder="Procure um tema: voto, gastos, direitos..." value="${esc(searchQuery)}" autocomplete="off"></div>
        <p class="search-count small subtle" id="search-count" aria-live="polite"></p><div class="lesson-list" id="lesson-list"></div>
@@ -213,6 +213,7 @@
       ${miniComics(l)}
       <section class="mission"><span style="font-size:1.65rem" aria-hidden="true">🧭</span><div><strong>Missão prática (opcional)</strong><p>${glossify(l.mission)}</p><p class="tiny subtle" style="margin-top:7px">A tarefa prática não é monitorada pelo aplicativo e não pede dados pessoais.</p></div></section>
       <section class="card source-section" aria-label="Fontes da aula"><h2>${icon('shield')} Confira as fontes</h2><p>Você pode conferir os documentos oficiais que fundamentam esta aula e a explicação simples.</p>${l.sourceIds.map(sourceLink).join('')}</section>
+      <div class="review-box"><span>${icon('shield')} Viu alguma informação incompleta ou incorreta?</span><a href="#ouvidoria/${encodeURIComponent(l.id)}">Pedir revisão desta aula ${icon('arrow')}</a></div>
       <div class="btn-row" style="margin-top:20px"><button class="btn btn-primary" data-action="start-quiz" data-id="${esc(l.id)}">Fazer a miniprova · 3 perguntas ${icon('arrow')}</button><a href="#aulas" class="btn btn-secondary">Escolher outra aula</a></div>
       ${state.completed[l.id]?`<p class="small subtle" style="margin-top:12px">✓ Você já concluiu esta aula. Refazer a prova pode melhorar sua melhor pontuação, mas não duplica recompensas.</p>`:''}
     </div>`;
@@ -269,16 +270,16 @@
   }
   function achievementsPage(){
     const s=computed();
-    const rewards=[{limit:1,emoji:'🌱',name:'Primeira semente',description:'Concluir a primeira aula.'},{limit:3,emoji:'🔍',name:'Cidadão curioso',description:'Concluir 3 aulas.'},{limit:5,emoji:'📚',name:'Explorador do conhecimento',description:'Concluir 5 aulas.'},{limit:10,emoji:'🏆',name:'Primeira temporada',description:'Concluir as 10 aulas.'}];
+    const rewards=[{limit:1,emoji:'🌱',name:'Primeira semente',description:'Concluir a primeira aula.'},{limit:3,emoji:'🔍',name:'Cidadão curioso',description:'Concluir 3 aulas.'},{limit:5,emoji:'📚',name:'Explorador do conhecimento',description:'Concluir 5 aulas.'},{limit:10,emoji:'🏆',name:'Primeira temporada',description:'Concluir 10 aulas.'},{limit:18,emoji:'🛡️',name:'Conhecedor de direitos',description:'Concluir 18 aulas.'}];
     return `<div class="section-top"><div class="eyebrow">Minha jornada</div><h1>Seu esforço merece ser visto.</h1><p>XP representa atividades de aprendizagem concluídas — não mede inteligência nem torna ninguém automaticamente certo numa discussão.</p></div>
       <div class="main-grid"><div class="main-stack"><section class="card padding-card"><div class="eyebrow">${esc(badgeFor(s.level))}</div><h2 style="margin:7px 0 14px">Nível ${s.level} · ${s.xp} XP</h2>${bar(s.percent,'Progresso do seu nível')}<p class="small subtle" style="margin-top:12px">Mais ${s.remaining} XP para alcançar o próximo nível.</p><div class="stats-row"><div><span class="stat-big">${s.count}</span><span class="stat-label">Aulas concluídas</span></div><div><span class="stat-big">${s.total-s.count}</span><span class="stat-label">Aulas para descobrir</span></div></div></section>
       <section><h2>Suas medalhas</h2><div class="achievements">${rewards.map(r=>`<div class="achievement ${s.count>=r.limit?'':'locked'}"><span class="emoji" aria-hidden="true">${s.count>=r.limit?r.emoji:'🔒'}</span><div><strong>${esc(r.name)}</strong><p>${esc(r.description)}</p><span class="tiny">${s.count>=r.limit?'✓ Conquistada':'Ainda não conquistada'}</span></div></div>`).join('')}</div></section>
       <button class="btn btn-primary" data-action="share">${icon('copy')} Compartilhar meu nível</button></div><aside class="side-stack">${sideInfo()}<section class="card side-info"><h3>Revisar também conta</h3><p>Você pode repetir qualquer aula e melhorar a pontuação sem punição por erros.</p><a class="inline-source small" href="#aulas" style="margin-top:12px">Ver aulas ${icon('arrow')}</a></section></aside></div>`;
   }
   function sourcesPage(){
-    return `<section class="section-top"><div class="eyebrow">Biblioteca pública</div><h1>Confira cada informação.</h1><p>Estas são as fontes utilizadas pelas aulas da primeira temporada. O conteúdo explicativo foi resumido; os links levam aos documentos e serviços originais.</p></section>
+    return `<section class="section-top"><div class="eyebrow">Biblioteca pública</div><h1>Confira cada informação.</h1><p>Estas são as fontes utilizadas nas duas temporadas de aulas. O conteúdo explicativo foi resumido; os links levam aos documentos e serviços originais.</p></section>
       <div class="notice" style="margin-bottom:18px"><strong>Última revisão editorial: ${DATA.updatedAt}</strong>Leis, regras e endereços podem mudar. Confira a publicação original antes de usar uma informação em decisões ou solicitações oficiais. Os links externos precisam de internet.</div>
-      <div class="card source-section"><h2>Fontes oficiais da primeira temporada</h2><p>Abra o documento ou portal que deseja conferir.</p>${Object.keys(DATA.sources).map(sourceLink).join('')}</div>`;
+      <div class="card source-section"><h2>Fontes oficiais das aulas</h2><p>Abra o documento ou portal que deseja conferir.</p>${Object.keys(DATA.sources).map(sourceLink).join('')}</div>`;
   }
   function settingsPage(){return `<section class="section-top"><div class="eyebrow">Para aprender com conforto</div><h1>Ajustes de acessibilidade</h1><p>Escolha como prefere ver e ouvir suas aulas. Suas opções ficam salvas neste navegador.</p></section>
     <section class="card padding-card"><h2>Aparência</h2><div class="setting-row"><span class="subtle small">Escolha o tema, ou acompanhe o tema do seu aparelho.</span><div class="segmented" role="group" aria-label="Tema de cores">${[['auto','Automático'],['light','Claro'],['dark','Escuro']].map(([v,name])=>`<button type="button" aria-pressed="${state.theme===v}" data-action="theme" data-value="${v}">${name}</button>`).join('')}</div></div>
@@ -291,7 +292,55 @@
     <div style="margin-top:24px"><button class="btn btn-secondary" data-action="reset">Apagar todo o progresso</button></div></section>`;}
   function aboutPage(){return `<section class="section-top"><div class="eyebrow">Sobre o projeto</div><h1>Uma escola de cidadania para todos.</h1><p>O Cívica nasce da ideia de que aprender como a sociedade funciona não deveria exigir experiência política, dinheiro nem paciência para navegar em sites difíceis.</p></section>
     <div class="main-stack" style="max-width:820px"><div class="card padding-card"><h2>O que defendemos</h2><div class="fact-list"><div class="fact"><span class="fact-index">1</span><div><h3>Acesso universal</h3><p>Conteúdo gratuito, sem publicidade e com linguagem clara, pensado especialmente em quem está começando.</p></div></div><div class="fact"><span class="fact-index">2</span><div><h3>Fontes rastreáveis</h3><p>Explicações e respostas apontam para documentos públicos, com data da revisão editorial e acesso aos links originais.</p></div></div><div class="fact"><span class="fact-index">3</span><div><h3>Independência política</h3><p>Sem endossar partidos, candidatos ou posições. As provas abordam fatos verificáveis e funcionamento institucional.</p></div></div><div class="fact"><span class="fact-index">4</span><div><h3>Privacidade</h3><p>Esta versão não pede nome, CPF, email ou cadastro. O progresso fica neste navegador e pode ser exportado ou apagado.</p></div></div></div></div>
-    <div class="callout"><h3>O Cívica ainda está começando.</h3><p>A versão v0.2.0-alpha oferece educação básica, explicação bem fácil, minidicionário, quadrinhos e atalhos oficiais. Ainda não consulta automaticamente políticos, processos judiciais ou despesas individuais. Seu conteúdo pode ser aperfeiçoado e deve passar por revisões editoriais contínuas.</p><a class="btn btn-primary" href="#aulas">Explorar aulas ${icon('arrow')}</a></div></div>`;}
+    <div class="callout"><h3>O Cívica ainda está começando.</h3><p>A versão v0.3.0-alpha acrescenta uma trilha de direitos com exemplos, quadrinhos e provas. Mantém explicações bem fáceis, minidicionário e fontes oficiais. Ainda não consulta automaticamente políticos, processos judiciais ou despesas individuais. Seu conteúdo pode ser aperfeiçoado e deve passar por revisões editoriais contínuas.</p><a class="btn btn-primary" href="#aulas">Explorar aulas ${icon('arrow')}</a></div><div class="review-box"><strong>Nosso compromisso é público e revisável.</strong><p>Não recomendamos voto, partido ou candidato. Usamos critérios iguais ao apresentar direitos e instituições. Você pode questionar qualquer explicação.</p><a href="#principios">Ver constituição editorial</a><a href="#ouvidoria">Pedir revisão ou sugerir melhoria</a></div></div>`;}
+  const RIGHTS = DATA.lessons.filter(l=>l.number>=11);
+  const FEEDBACK_FORM_URL = typeof window.CIVICA_CONFIG?.feedbackFormUrl === 'string' && /^https:\/\/(docs\.google\.com\/forms\/|forms\.gle\/)/i.test(window.CIVICA_CONFIG.feedbackFormUrl) ? window.CIVICA_CONFIG.feedbackFormUrl : '';
+  function rightsPathPage(){
+    const count=RIGHTS.filter(l=>state.completed[l.id]).length;
+    return `<section class="section-top"><div class="eyebrow">Temporada 2 · Conheça Seus Direitos</div><h1>Direitos que você talvez não conheça.</h1><p>Compras, atendimento, saúde e proteção da pessoa idosa — em palavras simples, com quadrinhos e fontes que você pode conferir. São 8 aulas novas. Você faz no seu ritmo.</p></section>
+    <div class="rights-intro card"><div class="rights-intro-icon">🛡️</div><div><h2>Aprender um direito pode mudar seu dia.</h2><p>Comece pela situação que mais parece com sua vida. Cada aula tem um botão <strong>Explica bem fácil</strong>, narração, figuras e três perguntas.</p><p class="small subtle">${count} de 8 aulas concluídas nesta trilha.</p>${bar(count/8*100,'Conclusão da trilha de direitos')}</div></div>
+    <section style="margin-top:22px"><h2>Escolha uma situação</h2><div class="lesson-list" style="margin-top:15px">${RIGHTS.map(lessonCard).join('')}</div></section>
+    <div class="rights-next"><strong>Quer agir na prática?</strong><p>Veja canais de atendimento e serviços oficiais sem sair do caminho do aprendizado.</p><a class="btn btn-secondary" href="#direitos">Abrir serviços e ferramentas ${icon('arrow')}</a></div>`;
+  }
+  function principlesPage(){
+    const articles=[
+      ['Sem partido de estimação','O Cívica não endossa candidatos, partidos ou campanhas e não sugere em quem votar.'],
+      ['Mesmos critérios para todos','As regras de verificação e o rigor das evidências não mudam conforme o grupo político envolvido.'],
+      ['Fato não é opinião','Identificamos o que é lei, procedimento, dado, interpretação, hipótese ou opinião; discordâncias não se transformam em gabarito partidário.'],
+      ['Fontes em cada conteúdo','Cada aula e questão tem links de origem. Preferimos textos legais e órgãos competentes para regras e direitos.'],
+      ['Explicar sem esconder limites','O modo bem fácil ajuda a entender, mas não apaga requisitos, exceções, prazos e mudanças da legislação.'],
+      ['Direito de apontar erros','Qualquer pessoa pode pedir revisão, sugerir fonte, alertar sobre desatualização ou propor melhoria. A equipe avalia evidências; não prometemos alteração automática.'],
+      ['Acessibilidade e dignidade','Linguagem simples sem infantilizar ninguém, letras maiores, áudio e navegação para diferentes públicos.'],
+      ['Privacidade antes de tudo','Não exigimos cadastro, CPF, telefone ou preferência política. Progresso no próprio navegador; formulário externo é opcional e terá política própria.']
+    ];
+    return `<section class="section-top"><div class="eyebrow">Compromissos públicos · 21/10/2026</div><h1>Nossa constituição editorial.</h1><p>Estas são as regras do próprio Cívica. Elas não são uma lei e não substituem a Constituição brasileira. Servem para que você saiba como criamos e revisamos o material.</p></section>
+      <div class="card padding-card editorial-articles">${articles.map(([title,detail],i)=>`<div class="editorial-article"><span class="editorial-article-number">Art. ${i+1}</span><div><h2>${esc(title)}</h2><p>${esc(detail)}</p></div></div>`).join('')}</div>
+      <div class="card padding-card" style="margin-top:18px"><h2>Como avaliamos uma correção?</h2><p class="subtle">1. Registramos a alegação e a aula mencionada. 2. Conferimos o texto legal ou a fonte original, data e possíveis mudanças. 3. Corrigimos a explicação, quando necessário, e documentamos a alteração no histórico da próxima versão. 4. Se for uma interpretação contestada, deixamos isso claro e identificamos as fontes.</p><div class="btn-row" style="margin-top:16px"><a class="btn btn-primary" href="#ouvidoria">Pedir revisão ou dar opinião ${icon('arrow')}</a><a class="btn btn-secondary" href="#fontes">Ver biblioteca de fontes</a></div></div>`;
+  }
+  function feedbackPage(lessonId=''){
+    const lesson=getLesson(lessonId);
+    return `<section class="section-top"><div class="eyebrow">Ouvidoria do Cívica · opiniões e correções</div><h1>Sua voz ajuda a melhorar.</h1><p>Encontrou um erro? Não entendeu a aula? Tem uma sugestão? Toda pessoa pode pedir revisão — sem informar partido, telefone ou dados pessoais.</p></section>
+      <div class="feedback-grid"><section class="card padding-card"><h2>Preparar mensagem</h2><p class="small subtle">Preencha apenas o que for necessário. O Cívica não envia dados automaticamente.</p><div class="feedback-fields"><label for="feedback-kind">O que você quer dizer?</label><select id="feedback-kind"><option value="Pedido de revisão">Pedir revisão de informação</option><option value="Sugestão de melhoria">Sugerir melhoria</option><option value="Dificuldade de acesso">Contar uma dificuldade de uso</option><option value="Opinião">Deixar uma opinião</option></select>
+      <label for="feedback-lesson">Sobre qual aula? (opcional)</label><select id="feedback-lesson"><option value="">Assunto geral</option>${DATA.lessons.map(l=>`<option value="${esc(l.id)}" ${l.id===lessonId?'selected':''}>${esc(l.number+' · '+l.title)}</option>`).join('')}</select>
+      <label for="feedback-text">Conte o que aconteceu ou precisa melhorar</label><textarea id="feedback-text" maxlength="1800" rows="6" placeholder="Exemplo: Na aula sobre viagens, o texto poderia explicar melhor quais ônibus participam do benefício."></textarea>
+      <label for="feedback-reference">Fonte ou link para consultar (opcional)</label><input id="feedback-reference" type="url" maxlength="500" placeholder="https://..." inputmode="url">
+      <p class="tiny subtle">Não escreva CPF, telefone, endereço, dados de saúde ou nomes de terceiros. Se quiser identificar um problema, descreva a situação sem expor pessoas.</p>
+      <div class="btn-row"><button type="button" class="btn btn-primary" data-action="feedback-copy">Copiar mensagem ${icon('copy')}</button><button type="button" class="btn btn-secondary" data-action="feedback-download">Baixar como texto ${icon('download')}</button></div>
+      <p class="small feedback-message" id="feedback-status" role="status"></p></div></section>
+      <aside class="card padding-card"><h2>Como enviar?</h2>${FEEDBACK_FORM_URL?`<p>O formulário externo está disponível. Copie a mensagem ao lado e cole no campo de comentário.</p><a class="btn btn-primary btn-full" href="${esc(FEEDBACK_FORM_URL)}" target="_blank" rel="noopener noreferrer">Abrir Google Forms ${icon('link')}</a><p class="small subtle">Ao abrir o formulário, valem as regras de privacidade do Google e as opções definidas pelo responsável pelo formulário.</p>`:`<div class="no-send"><strong>Recebimento ainda não ativado.</strong><p>Por enquanto você pode copiar ou baixar sua mensagem, mas ela <strong>não é enviada ao criador</strong>. O formulário de recebimento precisa ser configurado antes da publicação da ouvidoria.</p></div>`}
+      <p class="small subtle">Este canal trata de correções e opiniões sobre o aplicativo. <strong>Não é uma ouvidoria governamental</strong> nem serviço de emergência.</p><p><a href="#principios">Ler princípios editoriais ${icon('arrow')}</a></p></aside></div>`;
+  }
+  function feedbackText(){
+    const kind=document.getElementById('feedback-kind')?.value||'Opinião';
+    const lessonId=document.getElementById('feedback-lesson')?.value||'';
+    const message=document.getElementById('feedback-text')?.value.trim()||'';
+    const reference=document.getElementById('feedback-reference')?.value.trim()||'';
+    if(message.length<10){document.getElementById('feedback-status').textContent='Escreva pelo menos 10 caracteres no seu comentário.';document.getElementById('feedback-text')?.focus();return null;}
+    return `CÍVICA — FEEDBACK / REVISÃO\nTipo: ${kind}\nAssunto: ${getLesson(lessonId)?.title||'Geral'}\nComentário: ${message}\nFonte sugerida: ${reference||'Não informada'}\n`; 
+  }
+  async function copyFeedback(){const t=feedbackText();if(!t)return;try{await navigator.clipboard.writeText(t);document.getElementById('feedback-status').textContent='Mensagem copiada. Cole no formulário de contato, quando disponível.';}catch(_){document.getElementById('feedback-status').textContent='Não foi possível copiar. Use a opção Baixar como texto.';}}
+  function downloadFeedback(){const t=feedbackText();if(!t)return;const url=URL.createObjectURL(new Blob([t],{type:'text/plain;charset=utf-8'}));const a=document.createElement('a');a.href=url;a.download='civica-sugestao-revisao.txt';a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);document.getElementById('feedback-status').textContent='Arquivo preparado. Isso não envia sua mensagem automaticamente.';}
+
   function route() {
     const hash = decodeURIComponent(location.hash.slice(1) || 'inicio');
     const [view,...rest] = hash.split('/'); const id=rest.join('/');
@@ -338,7 +387,10 @@
     else if(r.view==='aula' && getLesson(r.id)){main=lessonPage(getLesson(r.id));active='#aulas';}
     else if(r.view==='quiz' && getLesson(r.id)){main=quizPage(getLesson(r.id));active='#aulas';}
     else if(r.view==='resultado' && getLesson(r.id)){main=resultPage(getLesson(r.id));active='#aulas';}
-    else if(r.view==='direitos'){main=toolsPage();active='#direitos';}
+    else if(r.view==='trilha-direitos'){main=rightsPathPage();active='#trilha-direitos';}
+    else if(r.view==='direitos'){main=toolsPage();active='#trilha-direitos';}
+    else if(r.view==='principios'){main=principlesPage();active='#principios';}
+    else if(r.view==='ouvidoria'){main=feedbackPage(r.id);active='#principios';}
     else if(r.view==='conquistas'){main=achievementsPage();active='#conquistas';}
     else if(r.view==='fontes'){main=sourcesPage();active='#fontes';}
     else if(r.view==='ajustes'){main=settingsPage();active='#ajustes';}
@@ -347,7 +399,7 @@
     app.innerHTML=chrome(main,active);
     if (r.view==='aulas') renderFilteredLessons();
     highlightAudio();
-    document.title = `${({inicio:'Início',aulas:'Aulas',aula:getLesson(r.id)?.title,quiz:'Miniprova',resultado:'Resultado',direitos:'Na prática',conquistas:'Meu nível',fontes:'Fontes',ajustes:'Ajustes',sobre:'Sobre'}[r.view]||'Cívica')} · Cívica`;
+    document.title = `${({inicio:'Início',aulas:'Aulas',aula:getLesson(r.id)?.title,quiz:'Miniprova',resultado:'Resultado',direitos:'Ferramentas', 'trilha-direitos':'Conheça Seus Direitos', principios:'Princípios', ouvidoria:'Ouvidoria',conquistas:'Meu nível',fontes:'Fontes',ajustes:'Ajustes',sobre:'Sobre'}[r.view]||'Cívica')} · Cívica`;
   }
   function navigate(hash){if(location.hash===hash){render();window.scrollTo({top:0,behavior:'instant'});}else location.hash=hash;}
   window.addEventListener('hashchange',()=>{render();window.scrollTo({top:0,behavior:'instant'});const heading=document.querySelector('#main-content h1');if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}});
@@ -401,6 +453,8 @@
     else if(act==='toggle-theme'){state.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';saveState();render();announce(state.theme==='dark'?'Modo escuro':'Modo claro');}
     else if(act==='text-size'){state.textScale=btn.dataset.value;saveState();render();announce('Tamanho de letra atualizado.');}
     else if(act==='contrast'){state.contrast=btn.dataset.value;saveState();render();announce('Contraste atualizado.');}
+    else if(act==='feedback-copy')copyFeedback();
+    else if(act==='feedback-download')downloadFeedback();
     else if(act==='export')exportProgress();
     else if(act==='reset' && confirm('Apagar todas as aulas concluídas e os pontos deste navegador? Esta ação não pode ser desfeita.')){state.completed={};saveState();render();announce('Progresso apagado.');}
   });
