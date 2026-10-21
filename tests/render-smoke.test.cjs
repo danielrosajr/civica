@@ -8,7 +8,7 @@ function mockRender(hash,progress='{}',form=''){
  const listeners={};const store={'civica-progress-v1':progress};
  const ctx={window:{addEventListener(n,cb){listeners[n]=cb},matchMedia(){return {matches:false,addEventListener(){}}}},document:dom,localStorage:{getItem(k){return store[k]||null},setItem(k,v){store[k]=v}},location:{hash},navigator:{},console,setTimeout(){},URL};
  vm.createContext(ctx);
- for(const file of ['content.js','extras.js','rights.js','families.js','config.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx);
+ for(const file of ['content.js','extras.js','rights.js','families.js','powers.js','config.js'])vm.runInContext(fs.readFileSync(path.join(root,file),'utf8'),ctx);
  if(form)ctx.window.CIVICA_CONFIG.feedbackFormUrl=form;
  vm.runInContext(fs.readFileSync(path.join(root,'app.js'),'utf8'),ctx);
  return {html:app.innerHTML,doc:dom,ctx};

@@ -30,7 +30,7 @@ test('glossário mantém referências existentes e formas únicas',()=>{
  }
 });
 test('PWA atualiza cache incluindo script novo, HQ e todas as artes',()=>{
- const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');assert.match(sw,/civica-v0\.4\.0-alpha/);
+ const sw=fs.readFileSync(path.join(root,'sw.js'),'utf8');assert.match(sw,/civica-v0\.5\.0-alpha/);
  assert.match(sw,/families\.js/);assert.match(sw,/quadrinhos-acompanhante-4.webp/);
  for(const l of data.lessons.filter(l=>l.number>=19))assert.ok(sw.includes(extra.easy[l.id].comic+'1.'+(extra.easy[l.id].comicExt||'webp')),l.id);
 });

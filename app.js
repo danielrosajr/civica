@@ -1,5 +1,6 @@
 'use strict';
 (() => {
+  const VERSION = 'v0.5.0-alpha';
   const DATA = window.CIVICA_CONTENT;
   const EXTRA = window.CIVICA_EXTRAS;
   const glossaryItems = Object.entries(EXTRA.glossary);
@@ -57,7 +58,8 @@
       voiceKey:typeof raw.voiceKey==='string' ? raw.voiceKey.slice(0,220) : '',
       voiceRate:[0.75,0.85,1,1.15,1.3].includes(Number(raw.voiceRate)) ? Number(raw.voiceRate) : 0.85,
       textScale:['normal','large','xlarge'].includes(raw.textScale) ? raw.textScale : 'normal',
-      contrast:raw.contrast === 'high' ? 'high' : 'normal'
+      contrast:raw.contrast === 'high' ? 'high' : 'normal',
+      profile: { stage:['none','teen','adult','senior'].includes(raw.profile?.stage) ? raw.profile.stage : 'none', interests:Array.isArray(raw.profile?.interests) ? raw.profile.interests.filter(t=>['women','children','seniors','powers','daily'].includes(t)).slice(0,5) : [] }
     };
   }
   let state = loadState();
@@ -125,6 +127,7 @@
     {hash:'#inicio',label:'Início',icon:'home'},
     {hash:'#aulas',label:'Aulas',icon:'book'},
     {hash:'#trilha-direitos',label:'Direitos',icon:'shield'},
+    {hash:'#quem-pode',label:'Poderes',icon:'compass'},
     {hash:'#conquistas',label:'Meu nível',icon:'award'}
   ];
   function linkNav(entry, active, mobile=false) {
@@ -137,7 +140,7 @@
       <div class="header-actions"><button type="button" class="icon-btn" data-action="toggle-theme" aria-label="Alternar tema claro ou escuro" title="Alternar tema">${icon(document.documentElement.dataset.theme==='dark'?'sun':'moon')}</button><a class="icon-btn" href="#ajustes" aria-label="Ajustar letras e contraste" title="Acessibilidade">${icon('settings')}</a></div>
     </div></header>
     <main id="main-content" class="shell page" tabindex="-1">${main}</main>
-    <footer class="footer"><div class="shell footer-inner"><span>© Cívica · Projeto educativo independente · Gratuito e sem anúncios</span><div class="footer-links"><a href="#fontes">Fontes oficiais</a><a href="#principios">Princípios</a><a href="#ouvidoria">Ouvidoria do Cívica</a><a href="#sobre">Sobre</a><a href="#ajustes">Acessibilidade</a></div></div></footer>
+    <footer class="footer"><div class="shell footer-inner"><span>© Cívica · Projeto educativo independente · Gratuito e sem anúncios</span><div class="footer-links"><a href="#fontes">Fontes oficiais</a><a href="#principios">Princípios</a><a href="#ouvidoria">Ouvidoria do Cívica</a><a href="#sobre">Sobre · ${VERSION}</a><a href="#perfil">Meu mini perfil</a><a href="#ajustes">Acessibilidade</a></div></div></footer>
     <nav class="mobile-nav" aria-label="Navegação inferior">${nav.map(n=>linkNav(n,n.hash===active,true)).join('')}</nav>`;
   }
   function bar(percent,label='Progresso') {return `<div class="progress-track" role="progressbar" aria-label="${esc(label)}" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${percent}"><div class="progress-fill" style="width:${Math.min(100,Math.max(0,percent))}%"></div></div>`;}
@@ -157,6 +160,43 @@
       <div class="meta"><span>${esc(l.category)}</span><span>·</span><span>${l.minutes} min</span>${done?'<span class="status">✓ Concluída</span>':''}</div>
       <h3>${esc(l.title)}</h3><p class="small subtle">${esc(l.subtitle)}</p></div><span class="arrow" aria-hidden="true">›</span></a>`;
   }
+  const PROFILE_TOPICS=[['women','Direitos das mulheres'],['children','Direitos das crianças'],['seniors','Direitos da pessoa idosa'],['powers','Como funciona o governo'],['daily','Direitos do dia a dia']];
+  function profileScore(l){
+    const t=state.profile.interests, stage=state.profile.stage;
+    let score=0;
+    if(t.includes('women')&&l.category==='Direitos das mulheres') score+=10;
+    if(t.includes('children')&&l.category==='Direitos das crianças') score+=10;
+    if(t.includes('seniors')&&l.category==='Direitos da pessoa idosa') score+=10;
+    if(t.includes('powers')&&l.category==='Quem Pode o Quê?') score+=10;
+    if(t.includes('daily')&&l.number>=11&&l.number<=18) score+=10;
+    if(stage==='senior'&&l.category==='Direitos da pessoa idosa') score+=5;
+    if(stage==='teen'&&l.category==='Direitos das crianças') score+=4;
+    if(stage==='teen'&&/voto|partido|congresso/i.test(l.id)) score+=3;
+    return score;
+  }
+  function suggestedLessons(limit=6){return [...DATA.lessons].sort((a,b)=>Number(!!state.completed[a.id])-Number(!!state.completed[b.id]) || profileScore(b)-profileScore(a) || a.number-b.number).slice(0,limit);}
+  function profileConfigured(){return state.profile.stage!=='none'||state.profile.interests.length>0;}
+  function profilePage(){
+    const stages=[['none','Prefiro não informar','Nenhuma faixa etária selecionada'],['teen','Sou adolescente','13 a 17 anos'],['adult','Sou adulto(a)','18 a 59 anos'],['senior','Sou pessoa idosa','60 anos ou mais']];
+    return `<section class="section-top"><div class="eyebrow">Meu mini perfil · opcional</div><h1>O que faz sentido para você?</h1><p>Escolha o que gostaria de aprender primeiro. Isso só organiza as recomendações: <strong>nenhuma aula desaparece</strong>. Não perguntamos em quem você vota.</p></section>
+    <div class="main-stack" style="max-width:850px">
+    <section class="card padding-card"><h2>Fase da vida (opcional)</h2><p class="subtle small">Pode pular esta parte. Alterar quando quiser é simples.</p><div class="profile-grid" role="group" aria-label="Fase da vida">
+    ${stages.map(([id,label,desc])=>`<button type="button" class="profile-option" aria-pressed="${state.profile.stage===id}" data-action="profile-stage" data-value="${id}"><strong>${label}</strong><span>${desc}</span></button>`).join('')}
+    </div></section>
+    <section class="card padding-card"><h2>Assuntos de interesse</h2><p class="subtle small">Pode escolher vários, mesmo que não digam respeito a você diretamente.</p><div class="profile-grid" role="group" aria-label="Assuntos de interesse">${PROFILE_TOPICS.map(([id,label])=>`<button type="button" class="profile-option" aria-pressed="${state.profile.interests.includes(id)}" data-action="profile-topic" data-value="${id}"><strong>${label}</strong><span>${state.profile.interests.includes(id)?'✓ Selecionado':'Toque para priorizar'}</span></button>`).join('')}</div></section>
+    <div class="notice"><strong>Seu perfil fica só neste navegador.</strong> Sem nome, gênero obrigatório, endereço, conta ou servidor. Você pode alterar ou limpar suas escolhas. Ao exportar o progresso, essas escolhas vão junto no arquivo.</div>
+    <div class="btn-row"><a class="btn btn-primary" href="#recomendadas">Ver minhas aulas sugeridas ${icon('arrow')}</a><button type="button" class="btn btn-secondary" data-action="profile-clear">Limpar mini perfil</button></div></div>`;
+  }
+  function recommendationsPage(){
+    return `<section class="section-top"><div class="eyebrow">Seu caminho de aprendizado</div><h1>${profileConfigured()?'Sugestões para você':'Por onde começar?'}</h1><p>Estas sugestões usam apenas as escolhas do mini perfil e o que você já estudou. Você continua livre para acessar tudo.</p></section>
+    <div class="main-grid"><div><div class="lesson-list">${suggestedLessons(9).map(lessonCard).join('')}</div>
+    <div class="btn-row" style="margin-top:20px"><a class="btn btn-primary" href="#perfil">${profileConfigured()?'Editar mini perfil':'Escolher interesses'}</a><a class="btn btn-secondary" href="#aulas">Explorar todas as aulas</a></div></div><aside class="side-stack">${progressPanel()}${sideInfo()}</aside></div>`;
+  }
+  function powersPage(){
+    return `<section class="section-top"><div class="eyebrow">Nova trilha · Quem Pode o Quê?</div><h1>Quem tem poder para fazer isso?</h1><p>Aprenda o que cada cargo pode fazer, o que não pode decidir sozinho e como cobrar a autoridade responsável. São ${POWERS.length} aulas com explicação fácil, HQs e fontes originais.</p></section>
+    <section class="card padding-card" style="margin-bottom:18px"><h2>🎯 Ele pode fazer isso?</h2><p>Um deputado federal pode mandar consertar uma rua da sua cidade e executar a obra diretamente?</p><div class="powers-test" role="group" aria-label="Desafio rápido"><button type="button" data-action="powers-answer" data-value="yes">Sim, é obrigação direta dele</button><button type="button" data-action="powers-answer" data-value="no">Não. Ele legisla e fiscaliza, mas não executa a obra</button></div><div id="powers-answer-result" class="small" role="status" aria-live="polite"></div><p class="small subtle" style="margin-top:14px">Fonte: <a href="${esc(DATA.sources.camara_funcao.url)}" target="_blank" rel="noopener noreferrer">Câmara dos Deputados ${icon('link')}</a></p></section>
+    <div class="lesson-list">${POWERS.map(lessonCard).join('')}</div><div class="review-box" style="margin-top:22px"><strong>Sem torcida e sem atalhos.</strong><p>As responsabilidades são explicadas pela Constituição e por órgãos oficiais, não por preferências partidárias.</p><a href="#principios">Nossos princípios</a><a href="#ouvidoria">Pedir revisão</a></div>`;
+  }
   function homePage() {
     const s = computed();
     const next = DATA.lessons.find(l => !state.completed[l.id]) || DATA.lessons[0];
@@ -172,14 +212,15 @@
           <a href="#aulas" class="card quick-card"><span class="bubble" aria-hidden="true">🎓</span><span class="quick-title">Quero aprender</span><span class="quick-description">Aulas curtas, explicações fáceis e pequenos testes.</span><span class="quick-bottom">Ver todas as aulas ${icon('arrow')}</span></a>
           <a href="#trilha-direitos" class="card quick-card"><span class="bubble" aria-hidden="true">🛡️</span><span class="quick-title">Conhecer meus direitos</span><span class="quick-description">Aprenda direitos do dia a dia com exemplos e quadrinhos.</span><span class="quick-bottom">Descobrir direitos ${icon('arrow')}</span></a>
         </div><div class="right-now-link"><a href="#direitos">🧭 Preciso resolver algo? Ver ferramentas e serviços oficiais →</a></div></section>
-      <section><div class="section-title"><div><div class="eyebrow">Pequenas vitórias</div><h2>${introduction?'Comece por estas aulas':'Suas próximas aulas'}</h2></div><a href="#aulas">Ver todas ${icon('arrow')}</a></div>
-        <div class="lesson-list">${[...DATA.lessons.filter(l => !state.completed[l.id]),...DATA.lessons.filter(l => state.completed[l.id])].slice(0,3).map(lessonCard).join('')}</div>
+      <section class="home-path-card card padding-card"><div class="eyebrow">Novidade da v0.5</div><h2>🏛️ Quem Pode o Quê?</h2><p>O que um deputado pode fazer? E o presidente, prefeito ou STF? Aprenda com HQs e desafios.</p><div class="btn-row"><a class="btn btn-primary" href="#quem-pode">Explorar os Poderes ${icon('arrow')}</a><a class="btn btn-secondary" href="#perfil">Meu mini perfil</a></div></section>
+      <section><div class="section-title"><div><div class="eyebrow">Sugestões de aulas</div><h2>${introduction?'Comece por estas aulas':'Suas próximas aulas'}</h2></div><a href="#recomendadas">Ver sugeridas ${icon('arrow')}</a></div>
+        <div class="lesson-list">${suggestedLessons(3).map(lessonCard).join('')}</div>
       </section>
       <div class="editorial-teaser"><strong>🕊️ Independente de partidos e candidatos.</strong><p>Conheça nossas regras de neutralidade e peça revisão de qualquer conteúdo.</p><a class="btn btn-secondary" href="#principios">Ler princípios</a><a class="btn btn-secondary" href="#ouvidoria">Sugerir correção</a></div><div class="trust-box"><span class="trust-icon" aria-hidden="true">🔐</span><div><strong>Sem conta. Sem anúncios. Sem classificação de opiniões políticas.</strong><p>Seu progresso fica salvo apenas neste navegador. Cada aula pode ser estudada de graça.</p></div></div>
     </div><aside class="side-stack">${progressPanel()}${sideInfo()}</aside></div>`;
   }
   function lessonsPage() {
-    return `<section class="section-top"><div class="eyebrow">Academia do Cidadão · Temporadas 1, 2 e 3</div><h1>Aprenda uma coisa por vez.</h1><p>São ${DATA.lessons.length} aulas rápidas para começar do zero. Você pode escolher o assunto que quiser. <a href="#trilha-direitos">Explore direitos das mulheres, crianças e pessoas idosas.</a></p></section>
+    return `<section class="section-top"><div class="eyebrow">Academia do Cidadão · Temporadas 1 a 4</div><h1>Aprenda uma coisa por vez.</h1><p>São ${DATA.lessons.length} aulas rápidas para começar do zero. Você pode escolher o assunto que quiser. <a href="#trilha-direitos">Explore direitos das mulheres, crianças e pessoas idosas.</a> ou <a href="#quem-pode">saiba quem pode fazer o quê.</a></p></section>
       <div class="main-grid"><div><label class="sr-only" for="lesson-search">Pesquisar aula por assunto</label>
        <div class="search-box">${icon('search')}<input id="lesson-search" type="search" placeholder="Procure um tema: voto, gastos, direitos..." value="${esc(searchQuery)}" autocomplete="off"></div>
        <p class="search-count small subtle" id="search-count" aria-live="polite"></p><div class="lesson-list" id="lesson-list"></div>
@@ -277,12 +318,12 @@
       <button class="btn btn-primary" data-action="share">${icon('copy')} Compartilhar meu nível</button></div><aside class="side-stack">${sideInfo()}<section class="card side-info"><h3>Revisar também conta</h3><p>Você pode repetir qualquer aula e melhorar a pontuação sem punição por erros.</p><a class="inline-source small" href="#aulas" style="margin-top:12px">Ver aulas ${icon('arrow')}</a></section></aside></div>`;
   }
   function sourcesPage(){
-    return `<section class="section-top"><div class="eyebrow">Biblioteca pública</div><h1>Confira cada informação.</h1><p>Estas são as fontes utilizadas nas duas temporadas de aulas. O conteúdo explicativo foi resumido; os links levam aos documentos e serviços originais.</p></section>
+    return `<section class="section-top"><div class="eyebrow">Biblioteca pública</div><h1>Confira cada informação.</h1><p>Estas são as fontes utilizadas nas nossas trilhas de aulas. O conteúdo explicativo foi resumido; os links levam aos documentos e serviços originais.</p></section>
       <div class="notice" style="margin-bottom:18px"><strong>Última revisão editorial: ${DATA.updatedAt}</strong>Leis, regras e endereços podem mudar. Confira a publicação original antes de usar uma informação em decisões ou solicitações oficiais. Os links externos precisam de internet.</div>
       <div class="card source-section"><h2>Fontes oficiais das aulas</h2><p>Abra o documento ou portal que deseja conferir.</p>${Object.keys(DATA.sources).map(sourceLink).join('')}</div>`;
   }
   function settingsPage(){return `<section class="section-top"><div class="eyebrow">Para aprender com conforto</div><h1>Ajustes de acessibilidade</h1><p>Escolha como prefere ver e ouvir suas aulas. Suas opções ficam salvas neste navegador.</p></section>
-    <section class="card padding-card"><h2>Aparência</h2><div class="setting-row"><span class="subtle small">Escolha o tema, ou acompanhe o tema do seu aparelho.</span><div class="segmented" role="group" aria-label="Tema de cores">${[['auto','Automático'],['light','Claro'],['dark','Escuro']].map(([v,name])=>`<button type="button" aria-pressed="${state.theme===v}" data-action="theme" data-value="${v}">${name}</button>`).join('')}</div></div>
+    <div class="notice" style="margin-bottom:16px"><strong>Mini perfil opcional:</strong> destaque temas de seu interesse sem esconder as outras aulas. <a href="#perfil">Configurar meu mini perfil →</a></div><section class="card padding-card"><h2>Aparência</h2><div class="setting-row"><span class="subtle small">Escolha o tema, ou acompanhe o tema do seu aparelho.</span><div class="segmented" role="group" aria-label="Tema de cores">${[['auto','Automático'],['light','Claro'],['dark','Escuro']].map(([v,name])=>`<button type="button" aria-pressed="${state.theme===v}" data-action="theme" data-value="${v}">${name}</button>`).join('')}</div></div>
     <h2 style="margin-top:25px">Tamanho das letras</h2><div class="setting-row"><span class="subtle small">Aumentar letras e espaços do conteúdo</span><div class="segmented" role="group" aria-label="Tamanho das letras">${[['normal','Normal'],['large','Grande'],['xlarge','Muito grande']].map(([v,name])=>`<button type="button" aria-pressed="${state.textScale===v}" data-action="text-size" data-value="${v}">${name}</button>`).join('')}</div></div>
     <h2 style="margin-top:25px">Contraste</h2><div class="setting-row"><span class="subtle small">Aumentar o contraste entre textos e fundos</span><div class="segmented" role="group" aria-label="Contraste">${[['normal','Padrão'],['high','Alto contraste']].map(([v,name])=>`<button type="button" aria-pressed="${state.contrast===v}" data-action="contrast" data-value="${v}">${name}</button>`).join('')}</div></div>
     <h2 style="margin-top:25px">Leitura em voz alta</h2><p class="small subtle">Escolha a voz e a velocidade. As vozes variam conforme o dispositivo; a qualidade não depende do Cívica.</p><div class="voice-settings voice-settings-wide"><label>Voz ${voiceSelect()}</label><label>Velocidade ${voiceSpeedSelect()}</label></div>
@@ -292,8 +333,9 @@
     <div style="margin-top:24px"><button class="btn btn-secondary" data-action="reset">Apagar todo o progresso</button></div></section>`;}
   function aboutPage(){return `<section class="section-top"><div class="eyebrow">Sobre o projeto</div><h1>Uma escola de cidadania para todos.</h1><p>O Cívica nasce da ideia de que aprender como a sociedade funciona não deveria exigir experiência política, dinheiro nem paciência para navegar em sites difíceis.</p></section>
     <div class="main-stack" style="max-width:820px"><div class="card padding-card"><h2>O que defendemos</h2><div class="fact-list"><div class="fact"><span class="fact-index">1</span><div><h3>Acesso universal</h3><p>Conteúdo gratuito, sem publicidade e com linguagem clara, pensado especialmente em quem está começando.</p></div></div><div class="fact"><span class="fact-index">2</span><div><h3>Fontes rastreáveis</h3><p>Explicações e respostas apontam para documentos públicos, com data da revisão editorial e acesso aos links originais.</p></div></div><div class="fact"><span class="fact-index">3</span><div><h3>Independência política</h3><p>Sem endossar partidos, candidatos ou posições. As provas abordam fatos verificáveis e funcionamento institucional.</p></div></div><div class="fact"><span class="fact-index">4</span><div><h3>Privacidade</h3><p>Esta versão não pede nome, CPF, email ou cadastro. O progresso fica neste navegador e pode ser exportado ou apagado.</p></div></div></div></div>
-    <div class="callout"><h3>O Cívica ainda está começando.</h3><p>A versão v0.4.0-alpha amplia a escola com 10 aulas sobre direitos das mulheres, crianças e pessoas idosas, totalizando 28 aulas e 84 perguntas. Mantém explicações bem fáceis, minidicionário e fontes oficiais. Ainda não consulta automaticamente políticos, processos judiciais ou despesas individuais. Seu conteúdo pode ser aperfeiçoado e deve passar por revisões editoriais contínuas.</p><a class="btn btn-primary" href="#aulas">Explorar aulas ${icon('arrow')}</a></div><div class="review-box"><strong>Nosso compromisso é público e revisável.</strong><p>Não recomendamos voto, partido ou candidato. Usamos critérios iguais ao apresentar direitos e instituições. Você pode questionar qualquer explicação.</p><a href="#principios">Ver constituição editorial</a><a href="#ouvidoria">Pedir revisão ou sugerir melhoria</a></div></div>`;}
-  const RIGHTS = DATA.lessons.filter(l=>l.number>=11);
+    <div class="callout"><h3>Versão atual: ${VERSION}</h3><p>A versão ${VERSION} adiciona 9 aulas sobre instituições, responsabilidades e limites do poder, totalizando 37 aulas e 111 perguntas. Mantém explicações bem fáceis, minidicionário e fontes oficiais. Ainda não consulta automaticamente políticos, processos judiciais ou despesas individuais. Seu conteúdo pode ser aperfeiçoado e deve passar por revisões editoriais contínuas.</p><a class="btn btn-primary" href="#aulas">Explorar aulas ${icon('arrow')}</a></div><div class="review-box"><strong>Nosso compromisso é público e revisável.</strong><p>Não recomendamos voto, partido ou candidato. Usamos critérios iguais ao apresentar direitos e instituições. Você pode questionar qualquer explicação.</p><a href="#principios">Ver constituição editorial</a><a href="#ouvidoria">Pedir revisão ou sugerir melhoria</a></div></div>`;}
+  const RIGHTS = DATA.lessons.filter(l=>l.number>=11 && l.number<=28);
+  const POWERS = DATA.lessons.filter(l=>l.category==='Quem Pode o Quê?');
   const FEEDBACK_FORM_URL = typeof window.CIVICA_CONFIG?.feedbackFormUrl === 'string' && /^https:\/\/(docs\.google\.com\/forms\/|forms\.gle\/)/i.test(window.CIVICA_CONFIG.feedbackFormUrl) ? window.CIVICA_CONFIG.feedbackFormUrl : '';
   function rightsPathPage(){
     const groups=[
@@ -394,6 +436,9 @@
     else if(r.view==='aula' && getLesson(r.id)){main=lessonPage(getLesson(r.id));active='#aulas';}
     else if(r.view==='quiz' && getLesson(r.id)){main=quizPage(getLesson(r.id));active='#aulas';}
     else if(r.view==='resultado' && getLesson(r.id)){main=resultPage(getLesson(r.id));active='#aulas';}
+    else if(r.view==='quem-pode'){main=powersPage();active='#quem-pode';}
+    else if(r.view==='perfil'){main=profilePage();active='#inicio';}
+    else if(r.view==='recomendadas'){main=recommendationsPage();active='#inicio';}
     else if(r.view==='trilha-direitos'){main=rightsPathPage();active='#trilha-direitos';}
     else if(r.view==='direitos'){main=toolsPage();active='#trilha-direitos';}
     else if(r.view==='principios'){main=principlesPage();active='#principios';}
@@ -407,7 +452,7 @@
     if (r.view==='aulas') renderFilteredLessons();
     if (r.view==='trilha-direitos' && r.id) requestAnimationFrame(()=>document.getElementById('family-'+r.id)?.scrollIntoView({block:'start'}));
     highlightAudio();
-    document.title = `${({inicio:'Início',aulas:'Aulas',aula:getLesson(r.id)?.title,quiz:'Miniprova',resultado:'Resultado',direitos:'Ferramentas', 'trilha-direitos':'Conheça Seus Direitos', principios:'Princípios', ouvidoria:'Ouvidoria',conquistas:'Meu nível',fontes:'Fontes',ajustes:'Ajustes',sobre:'Sobre'}[r.view]||'Cívica')} · Cívica`;
+    document.title = `${({inicio:'Início',aulas:'Aulas',aula:getLesson(r.id)?.title,quiz:'Miniprova',resultado:'Resultado',direitos:'Ferramentas', 'trilha-direitos':'Conheça Seus Direitos', 'quem-pode':'Quem Pode o Quê?', perfil:'Meu mini perfil', recomendadas:'Aulas sugeridas', principios:'Princípios', ouvidoria:'Ouvidoria',conquistas:'Meu nível',fontes:'Fontes',ajustes:'Ajustes',sobre:'Sobre'}[r.view]||'Cívica')} · Cívica`;
   }
   function navigate(hash){if(location.hash===hash){render();window.scrollTo({top:0,behavior:'instant'});}else location.hash=hash;}
   window.addEventListener('hashchange',()=>{render();window.scrollTo({top:0,behavior:'instant'});const heading=document.querySelector('#main-content h1');if(heading){heading.setAttribute('tabindex','-1');heading.focus({preventScroll:true});}});
@@ -463,6 +508,10 @@
     else if(act==='contrast'){state.contrast=btn.dataset.value;saveState();render();announce('Contraste atualizado.');}
     else if(act==='feedback-copy')copyFeedback();
     else if(act==='feedback-download')downloadFeedback();
+    else if(act==='profile-stage'){state.profile.stage=btn.dataset.value;saveState();render();announce('Mini perfil atualizado.');}
+    else if(act==='profile-topic'){const id=btn.dataset.value;state.profile.interests=state.profile.interests.includes(id)?state.profile.interests.filter(v=>v!==id):[...state.profile.interests,id];saveState();render();announce('Assuntos de interesse atualizados.');}
+    else if(act==='profile-clear'){state.profile={stage:'none',interests:[]};saveState();render();announce('Mini perfil limpo. Seu progresso foi preservado.');}
+    else if(act==='powers-answer'){const target=document.getElementById('powers-answer-result');target.innerHTML=btn.dataset.value==='no'?'<div class="feedback">✓ Isso! Deputados podem legislar e fiscalizar, mas a execução de obras pertence ao órgão competente.</div>':'<div class="feedback error">Boa tentativa. Confira: executar obras é função do Poder Executivo competente, não do deputado.</div>';}
     else if(act==='export')exportProgress();
     else if(act==='reset' && confirm('Apagar todas as aulas concluídas e os pontos deste navegador? Esta ação não pode ser desfeita.')){state.completed={};saveState();render();announce('Progresso apagado.');}
   });

@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 560 350" role="img" aria-label="Ilustração educativa sobre instituições públicas">
+<defs><linearGradient id="bg" x2="1" y2="1"><stop stop-color="#f9e8de"/><stop offset="1" stop-color="#f9dfe6"/></linearGradient><filter id="ds"><feDropShadow dx="0" dy="6" stdDeviation="8" flood-color="#576274" flood-opacity=".18"/></filter></defs>
+<rect width="560" height="350" fill="url(#bg)"/><circle cx="480" cy="68" r="90" fill="white" opacity=".32"/>
+<path d="M0 298 Q250 280 560 298V350H0Z" fill="#9caa95" opacity=".45"/>
+<rect x="315" y="80" width="195" height="196" rx="16" fill="white" opacity=".73" filter="url(#ds)"/>
+<path d="M343 142 L413 98 L483 142" stroke="#557b97" stroke-width="12" stroke-linecap="round" fill="none"/><rect x="354" y="148" width="121" height="90" rx="6" fill="#9fbdd0"/><rect x="373" y="162" width="18" height="62" fill="#f5f4e8"/><rect x="404" y="162" width="18" height="62" fill="#f5f4e8"/><rect x="435" y="162" width="18" height="62" fill="#f5f4e8"/><rect x="346" y="239" width="139" height="12" rx="4" fill="#557b97"/>
+<g filter="url(#ds)"><path d="M68 334 Q50 248 104 227 Q160 198 220 224 Q262 255 242 334" fill="#b2d9c6" stroke="#38465a" stroke-width="5"/><circle cx="151" cy="174" r="66" fill="#e3a778" stroke="#38465a" stroke-width="5"/><path d="M82 179Q88 92 150 99Q222 95 217 178Q193 135 157 141Q105 147 82 179" fill="#53403e"/><ellipse cx="128" cy="177" rx="6" ry="8" fill="#283142"/><ellipse cx="175" cy="177" rx="6" ry="8" fill="#283142"/><path d="M130 206 Q152 223 177 203" fill="none" stroke="#854c44" stroke-width="5" stroke-linecap="round"/></g>
+<g transform="translate(248, 203)" filter="url(#ds)"><path d="M0 20Q20 0 45 20L60 72Q35 95 5 75Z" fill="#f5f5ef" stroke="#557b97" stroke-width="5"/><path d="M15 44H45M30 31V59" stroke="#ec936b" stroke-width="6"/></g>
+<circle cx="50" cy="50" r="26" fill="#fff" opacity=".9"/><path d="M39 50l8 8 15-18" fill="none" stroke="#378f7e" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

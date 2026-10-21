@@ -38,6 +38,6 @@ test('modo PWA cobre os novos roteiros, config e artes',()=>{
  for(const file of ['rights.js','config.js','quadrinhos-viagem-1.webp','quadrinhos-viagem-4.webp']){
   assert.match(sw,new RegExp(file.replace('.','\\.')));
  }
- assert.match(sw,/civica-v0\.4\.0-alpha/);
+ assert.match(sw,/civica-v0\.5\.0-alpha/);
  assert.equal(context.window.CIVICA_CONFIG.feedbackFormUrl,'');
 });
