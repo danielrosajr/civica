@@ -1,26 +1,20 @@
-# Changelog
+# Histórico de versões — Cívica
 
-## [v0.3.0-alpha] — 2026-10-21
+## v0.4.0-alpha — Direitos para Todos (21/10/2026)
 
-### Adicionado
-- Nova trilha "Conheça Seus Direitos" com oito aulas (consumo, pessoa idosa e saúde), 24 questões, fontes oficiais e conteúdo fácil.
-- HQ ilustrada de quatro quadros na aula de transporte interestadual; vinhetas visuais nas demais aulas.
-- Ampliação do minidicionário com 12 termos ligados aos novos assuntos.
-- Página "Princípios" com oito artigos da constituição editorial do aplicativo.
-- Ouvidoria do Cívica: pedidos de revisão por aula, sugestões, opinião, texto copiável e download, opção de Google Forms configurável por `config.js`.
-- Documentação `EDITORIAL.md` e testes automáticos específicos da segunda trilha.
+### Novidades
+- 10 novas aulas, 30 questões e fontes oficiais: acompanhante de mulheres em consultas; licença-maternidade; acompanhante no parto; rede de proteção a mulheres; direito à escola; cuidado sem castigo físico; acompanhamento de criança internada; prioridade 80+; autonomia da pessoa idosa; proteção e Disque 100.
+- Total: **28 aulas e 84 questões** (mantidas as 18 aulas da versão anterior).
+- Novas trilhas visíveis de **Mulheres, Crianças, Pessoa idosa e Direitos do dia a dia**, sem criar uma página inicial complexa.
+- HQ original ilustrada em quatro cenas sobre o direito de acompanhamento em consultas, além de 36 quadrinhos vetoriais locais para as outras 9 aulas e imagens anteriores preservadas.
+- Minidicionário expandido com termos de saúde e proteção, todos com referências.
+- Data da revisão editorial exibida na seção de fontes das aulas.
+- Cache da PWA atualizado para servir os novos arquivos e as ilustrações.
 
-### Mantido
-- Compatibilidade com progresso da v0.1 e v0.2 (`civica-progress-v1`).
-- Dark mode, acessibilidade, leitura em voz alta, fontes nas aulas e questões, XP e PWA.
+### Preservado
+- PWA estático compatível com GitHub Pages, XP, níveis, provas, narração, modo Explica Bem Fácil, modo escuro, fonte ampliada, alto contraste, ouvidoria configurável e princípios editoriais.
+- Mesma chave de armazenamento do progresso v0.1–v0.3. Não apaga respostas anteriores.
 
-### Limitações
-- O envio pelo Google Forms requer ativação manual do proprietário; sem configuração o aplicativo não envia mensagens.
-- O leitor de voz depende do sistema/navegador.
-- O conteúdo é educativo, não substitui orientação jurídica ou médica.
-
-## [v0.2.0-alpha] — 2026-10-21
-- Modo fácil, minidicionário, tema escuro, controles de narração e quadrinhos.
-
-## [v0.1.0-alpha] — 2026-10-21
-- Primeira temporada: 10 aulas, 30 perguntas, XP, fontes e ferramentas públicas.
+### Limites
+- Informações jurídicas e de saúde são educativas, não orientação individual. As fontes externas precisam de internet. O formulário de feedback permanece dependente de configurar `config.js`.
+- Voz depende das opções do navegador/aparelho. Primeira execução offline requer visita anterior com rede.

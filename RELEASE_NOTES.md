@@ -1,26 +1,9 @@
-# Cívica v0.3.0-alpha — Conheça Seus Direitos
+# Cívica v0.4.0-alpha — Direitos para Todos
 
-A Cívica cresce sem perder a proposta original: ser uma escola gratuita, apartidária e simples de usar, com cada afirmação importante ligada a fontes oficiais.
+**Uma escola gratuita de cidadania, sem anúncios, com fontes oficiais e explicações acessíveis.**
 
-## Destaques
+Nesta versão, o Cívica ganha 10 aulas novas sobre direitos das mulheres, maternidade, crianças e pessoas idosas. O aplicativo tem agora **28 aulas e 84 perguntas**, com explicações normais e bem fáceis, um minidicionário clicável, narração, missões e avaliações rápidas. Inclui uma HQ ilustrada em quatro quadros sobre acompanhante em consultas médicas e 36 cenas vetoriais das outras nove aulas.
 
-- **Nova trilha com 8 aulas** sobre direitos de consumidores, pessoas idosas e usuários da saúde.
-- Agora são **18 aulas, 54 questões**, XP, níveis, conquistas e progresso salvo.
-- **Explica bem fácil**, exemplos cotidianos, minidicionário e quadrinhos nas novas aulas.
-- **HQ ilustrada em quatro quadros** sobre solicitação de benefício em transporte interestadual.
-- **Constituição editorial** com oito compromissos públicos de neutralidade, critérios de fontes, acessibilidade e privacidade.
-- **Ouvidoria do Cívica** para escrever, copiar ou baixar pedidos de revisão e opiniões. Pronta para habilitar **Google Forms** depois de configurar `config.js`.
-- Aulas agora incluem o botão **Pedir revisão desta aula**.
-- Mantidos modo claro/escuro, controles de voz, biblioteca de fontes, PWA e progresso da v0.2.
+**Princípios:** o projeto não recomenda partidos, candidaturas ou votos. Qualquer pessoa pode consultar as fontes e solicitar revisão de uma aula pela área de ouvidoria. O Cívica não recebe denúncias pessoais.
 
-## Atenção
-
-**Ouvidoria não envia nada até ser configurado um Google Forms válido.** O app informa isso visivelmente.
-
-Leis e procedimentos podem mudar: verifique os links oficiais antes de agir. Os exemplos e quadrinhos são ilustrativos e não representam atendimentos reais.
-
-## GitHub
-
-Branch: `feat/civica-v0.3-conheca-seus-direitos`  
-Tag: `v0.3.0-alpha`  
-Commit: `feat: adiciona trilha de direitos, principios editoriais e ouvidoria configuravel`
+**Compatibilidade:** GitHub Pages sem backend. Progresso salvo no dispositivo, com exportação/importação. Novos arquivos: `families.js`, `assets/quadrinhos-acompanhante-{1..4}.webp` e `assets/quadrinhos-{aula}-{1..4}.svg`. Atualizar `index.html`, `app.js`, `styles.css`, `sw.js`, documentação e demais arquivos do pacote. `config.js` continua preparado para URL externa de Google Forms; configure o seu próprio formulário.

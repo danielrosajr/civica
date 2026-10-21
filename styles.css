@@ -347,3 +347,12 @@ p{line-height:1.63}
 @media(max-width:390px){.editorial-article{flex-direction:column}}
 
 @media (min-width:761px) and (max-width:1120px){.footer{padding-bottom:100px}}
+
+/* v0.4.0 — navegação das trilhas de direitos, sem sobrecarregar a tela */
+.family-jump{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:23px 0 30px}
+.family-jump a{min-height:56px;display:flex;align-items:center;gap:7px;padding:13px 16px;border:1px solid var(--line);background:var(--paper);border-radius:15px;text-decoration:none;font-weight:750;color:var(--ink);line-height:1.35}
+.family-jump a:hover,.family-jump a:focus-visible{border-color:var(--green);background:var(--pale)}
+.rights-group{margin:26px 0 36px;scroll-margin-top:112px}
+.rights-group .section-title{align-items:center}
+.rights-group .lesson-list{margin-top:12px}
+@media(max-width:600px){.family-jump{grid-template-columns:1fr;gap:9px}.family-jump a{min-height:54px}.rights-group .section-title{align-items:start;flex-direction:column;gap:6px}}
