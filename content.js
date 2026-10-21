@@ -1,11 +1,11 @@
 /*
- * Cívica — Conteúdo editorial v0.1.0
+ * Cívica — Conteúdo editorial v0.2.0
  * Fontes oficiais conferidas em 20/10/2026.
  * Não apresenta preferência partidária. Revisar links e legislação regularmente.
  * As fontes são acessíveis em cada aula, questão e na biblioteca.
  */
 window.CIVICA_CONTENT = {
-  updatedAt: '20/10/2026',
+  updatedAt: '21/10/2026',
   sources: {
     cnj_judiciario: { agency:'Conselho Nacional de Justiça', title:'Panorama e estrutura do Poder Judiciário', url:'https://www.cnj.jus.br/poder-judiciario/panorama-e-estrutura-do-poder-judiciario-brasileiro/' },
     senado_poderes: { agency:'Senado Federal', title:'Atribuições do Poder Legislativo', url:'https://www12.senado.leg.br/institucional/documentos/sobre-o-senado/atividade/atribuicoes' },

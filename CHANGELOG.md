@@ -1,20 +1,24 @@
 # Histórico de versões
 
-## v0.1.0-alpha — Academia do Cidadão — 20/10/2026
+## v0.2.0-alpha — 21/10/2026 — Explica Bem Fácil
 
 ### Adicionado
-- 10 aulas de cidadania brasileira em linguagem simples.
-- 30 perguntas de múltipla escolha com explicações e fontes oficiais por pergunta.
-- Biblioteca única de fontes, acessível em todas as telas principais.
-- Sistema de XP, níveis e medalhas sem competição política.
-- Leitura em voz alta das aulas, quando o navegador permite.
-- Controles de tamanho de fonte e alto contraste.
-- Progresso local com exportação/importação JSON.
-- Página de ferramentas de participação cidadã com links oficiais.
-- Interface responsiva e instalação PWA com cache de conteúdo estático.
+- Tema **Claro, Escuro e Automático**, com acesso rápido pelo cabeçalho e tema do dispositivo.
+- Modo **Explica Bem Fácil** para todas as dez aulas, com resumos e exemplos práticos.
+- Minidicionário com palavras contextualizadas, janela acessível e referências oficiais.
+- Quadrinhos por aula; quatro cenas ilustradas profissionalmente na aula sobre prefeitura e vereadores.
+- Player de leitura em voz alta com Ouvir, Pausar/Continuar, Parar, escolha de vozes do aparelho, velocidades e destaque do bloco narrado.
+- Testes de integridade para conteúdos facilitados, referências do glossário, histórias e arquivos de PWA.
 
-### Limitações conhecidas
-- Não há busca dinâmica de agentes políticos, nem atualização automática de dados externos.
-- Voz depende do navegador e da instalação de vozes portuguesas no dispositivo.
-- Progresso salvo no navegador, sem sincronização entre aparelhos.
-- Recomendável validação de usabilidade com pessoas idosas antes de divulgar amplamente.
+### Preservado
+- 10 aulas, 30 perguntas, fontes por aula e questão, XP, níveis, medalhas, exportação/importação, GitHub Pages.
+- Mesmo formato de dados locais `civica-progress-v1`, preservando progresso da versão anterior.
+
+### Observações
+- A qualidade de voz e a disponibilidade de pausa/vozes dependem do navegador.
+- As imagens e analogias são exemplos didáticos, não registros de fatos e não substituem fontes primárias.
+- Nove das dez aulas usam quadros com símbolos; o primeiro conjunto de arte ilustrada está na aula "Prefeito ou vereador?".
+
+## v0.1.0-alpha — 21/10/2026 — Academia do Cidadão
+
+- Primeiro MVP com aulas, questões, níveis, fontes oficiais, progresso local, áudio básico e PWA.

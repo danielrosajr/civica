@@ -1,23 +1,21 @@
-# Cívica v0.1.0-alpha — Academia do Cidadão
+# Cívica v0.2.0-alpha — Explica Bem Fácil
 
-Primeira versão funcional do Cívica: uma plataforma gratuita de educação política e cidadania, criada para ser simples de usar no celular, inclusive por quem está começando a aprender.
+**Atualização focada em acessibilidade e aprendizado visual, sem anúncios e sem cadastro.**
 
-## Funcionalidades
+Nesta versão, a Cívica passa a oferecer:
 
-- 10 microaulas e 30 perguntas com explicações.
-- Links para fontes oficiais dentro das aulas, em todas as miniprovas e numa biblioteca dedicada.
-- XP, níveis e medalhas, com progressão salva no navegador.
-- Leitura em voz alta, letras ampliadas e modo de alto contraste.
-- Ferramentas com atalhos oficiais para transparência, participação e direitos.
-- Exportação e importação de progresso em JSON.
-- PWA instalável, sem anúncios e sem cadastro.
+- 🌗 **Modo escuro, claro e automático**, com contraste e tamanho de letra configuráveis.
+- 💡 **Explica Bem Fácil**: uma segunda explicação para cada uma das dez aulas, com exemplos do cotidiano.
+- 📖 **Minidicionário**: palavras difíceis pontilhadas — toque para ler o significado e conferir a fonte oficial.
+- 🗣️ **Leitura em voz alta melhorada**: ouvir, pausar, continuar, parar, ajustar velocidade e escolher entre as vozes disponíveis no aparelho.
+- 🖼️ **Quadrinhos por aula**: pequenos roteiros ilustrativos e uma HQ com quatro imagens na aula "Prefeito ou vereador?".
+- 🛡️ **Fontes mantidas** em todas as aulas e perguntas, e agora também no minidicionário.
 
-## Observações
+A versão mantém as 10 aulas, 30 perguntas, XP, conquistas, exportação de progresso e compatibilidade com GitHub Pages.
 
-Esta é uma versão **alpha de testes públicos**. O conteúdo foi revisado inicialmente em 20/10/2026 e precisa de manutenção editorial periódica. Não há consultas automáticas a bases de políticos nem sincronização de dados entre aparelhos. O acesso a fontes externas exige internet.
+**Observações:** a qualidade do áudio depende do dispositivo; nem toda plataforma suporta todas as ações. As explicações simples e ilustrações são didáticas e não substituem documentos oficiais. O progresso v0.1 é compatível.
 
-**Branch:** `feat/civica-mvp-academia-cidadao`
-
-**Tag:** `v0.1.0-alpha`
-
-**Commit:** `feat: lança MVP do Cívica com aulas, miniprovas e fontes oficiais`
+### Publicação
+- Tag: `v0.2.0-alpha`
+- Branch: `feat/civica-v0.2-explica-bem-facil`
+- Commit sugerido: `feat: adiciona modo facil, glossario, dark mode, voz e quadrinhos`

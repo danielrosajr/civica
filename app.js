@@ -1,6 +1,10 @@
 'use strict';
 (() => {
   const DATA = window.CIVICA_CONTENT;
+  const EXTRA = window.CIVICA_EXTRAS;
+  const glossaryItems = Object.entries(EXTRA.glossary);
+  const glossaryAliases = glossaryItems.flatMap(([id,info])=>info.forms.map(word=>({word,id}))).sort((a,b)=>b.word.length-a.word.length);
+  const glossaryPattern = new RegExp('(?<![\\p{L}])(' + glossaryAliases.map(a=>a.word.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')).join('|') + ')(?![\\p{L}])','giu');
   const STORAGE_KEY = 'civica-progress-v1';
   const app = document.getElementById('app');
   const live = document.getElementById('live-status');
@@ -24,6 +28,11 @@
     info:'<circle cx="12" cy="12" r="10"/><path d="M12 11v6m0-10v.2"/>',
     copy:'<rect x="8" y="8" width="12" height="12" rx="2"/><path d="M16 8V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h3"/>',
     download:'<path d="M12 3v12m-4-4 4 4 4-4M4 17v4h16v-4"/>',
+    sun:'<circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2m10-10h-2M4 12H2m17.1 7.1-1.4-1.4M6.3 6.3 4.9 4.9m14.2 0-1.4 1.4M6.3 17.7l-1.4 1.4"/>',
+    moon:'<path d="M20.5 14.4A9 9 0 0 1 9.6 3.5a9 9 0 1 0 10.9 10.9Z"/>',
+    pause:'<rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/>',
+    play:'<path d="m8 5 12 7-12 7V5Z"/>',
+    dictionary:'<path d="M4 19V5a2 2 0 0 1 2-2h14v17H6a2 2 0 0 1 0-4h14"/><path d="M9 8h7M9 12h5"/>',
     alert:'<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3v.2"/>'
   };
   function icon(name, extra='') { return `<svg aria-hidden="true" ${extra} width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round">${iconPaths[name] || iconPaths.info}</svg>`; }
@@ -43,6 +52,10 @@
     }
     return {
       completed:safeCompleted,
+      theme:['auto','light','dark'].includes(raw.theme) ? raw.theme : 'auto',
+      easyMode:raw.easyMode === true,
+      voiceKey:typeof raw.voiceKey==='string' ? raw.voiceKey.slice(0,220) : '',
+      voiceRate:[0.75,0.85,1,1.15,1.3].includes(Number(raw.voiceRate)) ? Number(raw.voiceRate) : 0.85,
       textScale:['normal','large','xlarge'].includes(raw.textScale) ? raw.textScale : 'normal',
       contrast:raw.contrast === 'high' ? 'high' : 'normal'
     };
@@ -50,10 +63,49 @@
   let state = loadState();
   let currentQuiz = null;
   let lastResult = null;
-  let speaking = false;
+  const audio = {playing:false,paused:false,id:null,chunks:[],index:0,generation:0};
   let searchQuery = '';
   function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) { announce('O navegador não permitiu salvar o progresso. Confira as configurações de armazenamento.'); } }
-  function syncSettings() { document.documentElement.dataset.text = state.textScale; document.documentElement.dataset.contrast = state.contrast; }
+  function syncSettings() {
+    document.documentElement.dataset.text = state.textScale;
+    document.documentElement.dataset.contrast = state.contrast;
+    const theme = state.theme==='auto' ? (window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : state.theme;
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content',theme==='dark'?'#121f1d':'#f7f8f4');
+  }
+  const norm = s=>String(s).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  const glossaryByForm = Object.fromEntries(glossaryAliases.map(({word,id})=>[norm(word),id]));
+  function glossify(value) {
+    const raw=String(value); let result=''; let position=0;
+    glossaryPattern.lastIndex=0;
+    for(const match of raw.matchAll(glossaryPattern)) {
+      result+=esc(raw.slice(position,match.index));
+      const term=match[0]; const key=glossaryByForm[norm(term)];
+      result+=`<button type="button" class="gloss-term" data-action="glossary" data-term="${esc(key)}" aria-label="O que significa ${esc(term)}?">${esc(term)}<span class="gloss-mark" aria-hidden="true">?</span></button>`;
+      position=match.index+term.length;
+    }
+    return result+esc(raw.slice(position));
+  }
+  function glossaryOpen(id,trigger) {
+    const item=EXTRA.glossary[id]; if(!item)return;
+    const dialog=document.getElementById('glossary-modal');if(!dialog)return;
+    dialog.querySelector('#glossary-title').textContent=EXTRA.glossary[id].forms[0];
+    dialog.querySelector('#glossary-definition').textContent=item.definition;
+    const source=DATA.sources[item.sourceId];const link=dialog.querySelector('#glossary-source');
+    link.href=source.url;link.textContent='Conferir: '+source.agency+' ↗';
+    dialog.showModal();
+  }
+  function audioStatus(){return audio.playing?(audio.paused?'Pausado':'Reproduzindo'):'Parado';}
+  function voiceOptions(){
+    const voices=window.speechSynthesis?.getVoices()||[];
+    const pts=voices.filter(v=>/^pt([_-]|$)/i.test(v.lang));
+    return pts.length?pts:voices;
+  }
+  function voiceSelect(){const voices=voiceOptions();return `<select class="voice-select" id="voice-select" aria-label="Escolha uma voz de leitura"><option value="">Voz padrão do aparelho</option>${voices.map(v=>`<option value="${esc(v.name+'|'+v.lang)}" ${state.voiceKey===v.name+'|'+v.lang?'selected':''}>${esc(v.name)} (${esc(v.lang)})</option>`).join('')}</select>`;}
+  function voiceSpeedSelect(){return `<select class="voice-select" id="voice-speed" aria-label="Velocidade da leitura">${[[0.75,'Bem devagar'],[0.85,'Devagar'],[1,'Normal'],[1.15,'Rápido'],[1.3,'Mais rápido']].map(([r,label])=>`<option value="${r}" ${state.voiceRate===r?'selected':''}>${label}</option>`).join('')}</select>`;}
+  function audioControls(l){const supported='speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;return `<section class="voice-panel" aria-label="Leitura em voz alta"><div class="voice-title">${icon('speaker')} Ouvir a explicação <span class="tiny subtle" id="audio-state">${audioStatus()}</span></div><div class="audio-buttons"><button class="btn btn-secondary" data-action="audio-play" data-id="${esc(l.id)}" ${supported?'':'disabled'}>${icon('play')} ${audio.playing?'Recomeçar':'Ouvir'}</button><button class="btn btn-secondary" data-action="audio-pause" ${!audio.playing?'disabled':''}>${icon(audio.paused?'play':'pause')} ${audio.paused?'Continuar':'Pausar'}</button><button class="btn btn-secondary" data-action="audio-stop" ${!audio.playing?'disabled':''}>${icon('stop')} Parar</button></div><div class="voice-settings"><label>Voz ${voiceSelect()}</label><label>Velocidade ${voiceSpeedSelect()}</label></div><p class="tiny subtle">A qualidade depende das vozes instaladas no aparelho. O trecho narrado fica destacado quando possível.</p></section>`;}
+  function miniComics(l){const ex=EXTRA.easy[l.id];return `<section class="card comics-section"><div class="eyebrow">Um exemplo para visualizar</div><h2>Entenda em quadrinhos</h2><p class="small subtle">Cenas ilustrativas e simplificadas, não são registros de acontecimentos reais.</p><div class="comic-grid">${ex.scenes.map(([emoji,caption],i)=>`<figure class="comic-panel"><div class="comic-art">${ex.comic?`<img src="./${ex.comic}${i+1}.webp" alt="Ilustração do quadro ${i+1}: ${esc(caption)}" loading="lazy" width="680" height="440">`:`<div class="comic-emoji" role="img" aria-label="Ilustração: ${esc(caption)}">${emoji}</div>`}<span class="comic-number" aria-hidden="true">${i+1}</span></div><figcaption>${glossify(caption)}</figcaption></figure>`).join('')}</div><p class="tiny subtle">Fontes e explicações completas estão disponíveis nesta aula, logo abaixo.</p></section>`;}
+
   function announce(message) { live.textContent = ''; setTimeout(() => { live.textContent = message; }, 20); }
   function computed() {
     const entries = Object.values(state.completed);
@@ -82,7 +134,7 @@
     return `<header class="site-header"><div class="shell header-inner">
       <a href="#inicio" class="brand" aria-label="Cívica — Página inicial"><img src="./assets/icon.svg" width="41" height="41" alt=""><span><span class="brand-title">cívica<span aria-hidden="true">.</span></span><small class="brand-line">Aprenda. Entenda. Participe.</small></span></a>
       <nav class="nav-links" aria-label="Navegação principal">${nav.map(n=>linkNav(n,n.hash===active)).join('')}<a class="nav-link ${active==='#fontes'?'active':''}" href="#fontes">${icon('sources')}<span>Fontes</span></a></nav>
-      <div class="header-actions"><a class="icon-btn" href="#ajustes" aria-label="Ajustar letras e contraste" title="Acessibilidade">${icon('settings')}</a></div>
+      <div class="header-actions"><button type="button" class="icon-btn" data-action="toggle-theme" aria-label="Alternar tema claro ou escuro" title="Alternar tema">${icon(document.documentElement.dataset.theme==='dark'?'sun':'moon')}</button><a class="icon-btn" href="#ajustes" aria-label="Ajustar letras e contraste" title="Acessibilidade">${icon('settings')}</a></div>
     </div></header>
     <main id="main-content" class="shell page" tabindex="-1">${main}</main>
     <footer class="footer"><div class="shell footer-inner"><span>© Cívica · Projeto educativo independente · Gratuito e sem anúncios</span><div class="footer-links"><a href="#fontes">Fontes oficiais</a><a href="#sobre">Sobre o projeto</a><a href="#ajustes">Acessibilidade</a></div></div></footer>
@@ -148,16 +200,19 @@
     return `<a class="source-link" href="${esc(s.url)}" target="_blank" rel="noopener noreferrer" aria-label="Abrir fonte: ${esc(s.title)} (abre em nova aba)">${icon('sources')}<span style="flex:1"><strong>${esc(s.title)}</strong><small>${esc(s.agency)} · Fonte oficial · Abre em nova aba</small></span>${icon('link','class="right-icon"')}</a>`;
   }
   function lessonPage(l) {
+    const easy=EXTRA.easy[l.id];
     return `<div class="quiz-shell" style="max-width:880px"><div class="breadcrumb"><button type="button" data-action="go" data-target="#aulas">${icon('back')} Todas as aulas</button><span aria-hidden="true">/</span><span>Aula ${l.number}</span></div>
-      <section class="card lesson-cover"><div class="cover-icon" aria-hidden="true">${esc(l.icon)}</div><div><span class="chip">${esc(l.category)} · ${l.minutes} min</span><h1>${esc(l.title)}</h1><p>${esc(l.subtitle)}</p></div></section>
-      <section class="card story-card"><div class="section-title"><div><span class="eyebrow">Vamos entender</span><h2>Explicando de forma simples</h2></div></div>
-        <p>${esc(l.intro)}</p>
-        <div class="btn-row" style="margin-top:16px"><button class="btn btn-secondary" type="button" data-action="audio" data-id="${esc(l.id)}">${icon(speaking?'stop':'speaker')} ${speaking?'Parar leitura':'Ouvir esta aula'}</button><a class="btn btn-soft" href="#fontes">${icon('sources')} Consultar fontes</a></div>
-        <div class="fact-list">${l.facts.map((f,i)=>`<div class="fact"><span class="fact-index">${i+1}</span><div><h3>${esc(f.title)}</h3><p>${esc(f.text)}</p></div></div>`).join('')}</div>
-        <div class="example-box"><strong>💡 Exemplo do dia a dia</strong><p>${esc(l.example)}</p></div>
+      <section class="card lesson-cover"><div class="cover-icon" aria-hidden="true">${esc(l.icon)}</div><div><span class="chip">${esc(l.category)} · ${l.minutes} min</span><h1>${esc(l.title)}</h1><p>${glossify(l.subtitle)}</p></div></section>
+      <section class="card story-card"><div class="section-title"><div><span class="eyebrow">Vamos entender</span><h2>${state.easyMode?'Explica bem fácil':'Explicação da aula'}</h2></div></div>
+        <div class="mode-bar" role="group" aria-label="Escolher tipo de explicação"><button class="mode-choice" type="button" data-action="easy-mode" data-value="false" aria-pressed="${!state.easyMode}">Explicação normal</button><button class="mode-choice" type="button" data-action="easy-mode" data-value="true" aria-pressed="${state.easyMode}">💡 Explica bem fácil</button></div>
+        <p class="tiny subtle glossary-hint">${icon('dictionary')} Palavra com <span class="underlined-hint">pontinhos</span> e ? Pode tocar para descobrir o significado, sem sair da aula.</p>
+        ${state.easyMode?`<div class="easy-story"><p data-narration-index="0">${glossify(easy.summary)}</p><div class="example-box" data-narration-index="1"><strong>💬 Imagina assim…</strong><p>${glossify(easy.comparison)}</p></div></div>`:
+        `<p data-narration-index="0">${glossify(l.intro)}</p><div class="fact-list">${l.facts.map((f,i)=>`<div class="fact" data-narration-index="${i+1}"><span class="fact-index">${i+1}</span><div><h3>${glossify(f.title)}</h3><p>${glossify(f.text)}</p></div></div>`).join('')}</div><div class="example-box" data-narration-index="${l.facts.length+1}"><strong>💡 Exemplo do dia a dia</strong><p>${glossify(l.example)}</p></div>`}
+        ${audioControls(l)}
       </section>
-      <section class="mission"><span style="font-size:1.65rem" aria-hidden="true">🧭</span><div><strong>Missão prática (opcional)</strong><p>${esc(l.mission)}</p><p class="tiny subtle" style="margin-top:7px">A tarefa prática não é monitorada pelo aplicativo e não pede dados pessoais.</p></div></section>
-      <section class="card source-section" aria-label="Fontes da aula"><h2>${icon('shield')} Confira as fontes</h2><p>Não precisa confiar só na explicação. Abra os documentos originais para confirmar o que aprendeu.</p>${l.sourceIds.map(sourceLink).join('')}</section>
+      ${miniComics(l)}
+      <section class="mission"><span style="font-size:1.65rem" aria-hidden="true">🧭</span><div><strong>Missão prática (opcional)</strong><p>${glossify(l.mission)}</p><p class="tiny subtle" style="margin-top:7px">A tarefa prática não é monitorada pelo aplicativo e não pede dados pessoais.</p></div></section>
+      <section class="card source-section" aria-label="Fontes da aula"><h2>${icon('shield')} Confira as fontes</h2><p>Você pode conferir os documentos oficiais que fundamentam esta aula e a explicação simples.</p>${l.sourceIds.map(sourceLink).join('')}</section>
       <div class="btn-row" style="margin-top:20px"><button class="btn btn-primary" data-action="start-quiz" data-id="${esc(l.id)}">Fazer a miniprova · 3 perguntas ${icon('arrow')}</button><a href="#aulas" class="btn btn-secondary">Escolher outra aula</a></div>
       ${state.completed[l.id]?`<p class="small subtle" style="margin-top:12px">✓ Você já concluiu esta aula. Refazer a prova pode melhorar sua melhor pontuação, mas não duplica recompensas.</p>`:''}
     </div>`;
@@ -174,7 +229,7 @@
     return `<div class="quiz-shell"><div class="breadcrumb"><button data-action="go" data-target="#aula/${encodeURIComponent(l.id)}">${icon('back')} Voltar para a aula</button></div>
       <div class="quiz-step"><span>Miniprova: ${esc(l.title)}</span><strong>${currentQuiz.index+1} de ${l.questions.length}</strong></div>
       <div class="quiz-progress">${bar(Math.round(((currentQuiz.index+1)/l.questions.length)*100),'Andamento da miniprova')}</div>
-      <section class="card quiz-card"><span class="eyebrow">Pergunta ${currentQuiz.index+1}</span><h1>${esc(q.prompt)}</h1>
+      <section class="card quiz-card"><span class="eyebrow">Pergunta ${currentQuiz.index+1}</span><h1>${glossify(q.prompt)}</h1>
         <div class="answer-list" role="group" aria-label="Alternativas da pergunta">${q.options.map((option,i)=>{
           const classes=['answer'];
           if (chosen===i) classes.push('selected');
@@ -182,7 +237,7 @@
           if (checked && chosen===i && !good) classes.push('incorrect');
           return `<button type="button" class="${classes.join(' ')}" data-action="answer" data-index="${i}" aria-pressed="${chosen===i}" ${checked?'disabled':''}><span class="answer-letter">${'ABC'[i]}</span><span>${esc(option)}</span></button>`;
         }).join('')}</div>
-        ${checked?`<div class="feedback ${good?'':'error'}" role="status"><strong>${good?'✓ Muito bem!':'↻ Boa tentativa. Veja a explicação:'}</strong><p>${esc(q.why)}</p></div>`:''}
+        ${checked?`<div class="feedback ${good?'':'error'}" role="status"><strong>${good?'✓ Muito bem!':'↻ Boa tentativa. Veja a explicação:'}</strong><p>${glossify(q.why)}</p></div>`:''}
         <div class="quiz-sources"><a class="inline-source" href="${esc(source.url)}" target="_blank" rel="noopener noreferrer">${icon('sources')} Ver fonte oficial desta pergunta ${icon('link')}</a></div>
         <div class="btn-row">${checked ? `<button type="button" class="btn btn-primary" data-action="next-question">${currentQuiz.index===l.questions.length-1?'Ver meu resultado':'Próxima pergunta'} ${icon('arrow')}</button>` : `<button type="button" class="btn btn-primary" data-action="check-answer" ${chosen===null?'disabled':''}>Conferir resposta ${icon('check')}</button>`}</div>
       </section><p class="small subtle" style="margin-top:17px;text-align:center">Você pode errar sem perder XP já conquistado. O importante é aprender.</p></div>`;
@@ -225,24 +280,53 @@
       <div class="notice" style="margin-bottom:18px"><strong>Última revisão editorial: ${DATA.updatedAt}</strong>Leis, regras e endereços podem mudar. Confira a publicação original antes de usar uma informação em decisões ou solicitações oficiais. Os links externos precisam de internet.</div>
       <div class="card source-section"><h2>Fontes oficiais da primeira temporada</h2><p>Abra o documento ou portal que deseja conferir.</p>${Object.keys(DATA.sources).map(sourceLink).join('')}</div>`;
   }
-  function settingsPage(){return `<section class="section-top"><div class="eyebrow">Para aprender com conforto</div><h1>Ajustes de acessibilidade</h1><p>Escolha como prefere ler. As opções ficam salvas neste navegador e podem ser alteradas a qualquer momento.</p></section>
-    <section class="card padding-card"><h2>Tamanho das letras</h2><div class="setting-row"><span class="subtle small">Aumentar as letras e espaços do conteúdo</span><div class="segmented" role="group" aria-label="Tamanho das letras">
-    ${[['normal','Normal'],['large','Grande'],['xlarge','Muito grande']].map(([v,name])=>`<button type="button" aria-pressed="${state.textScale===v}" data-action="text-size" data-value="${v}">${name}</button>`).join('')}</div></div>
-    <h2 style="margin-top:25px">Contraste</h2><div class="setting-row"><span class="subtle small">Aumentar o contraste das telas e botões</span><div class="segmented" role="group" aria-label="Contraste">
-    ${[['normal','Padrão'],['high','Alto contraste']].map(([v,name])=>`<button type="button" aria-pressed="${state.contrast===v}" data-action="contrast" data-value="${v}">${name}</button>`).join('')}</div></div>
-    <div class="notice" style="margin-top:22px"><strong>Leitura em voz alta</strong>Dentro de cada aula, toque em “Ouvir esta aula”. O recurso usa a voz disponível no seu celular ou computador. A qualidade depende do navegador e da voz instalada.</div></section>
-    <section class="card padding-card" style="margin-top:18px"><h2>Seu progresso</h2><p class="small subtle" style="margin:10px 0">Suas respostas e conquistas são armazenadas neste dispositivo, sem envio para servidores. Para trocar de navegador, exporte um arquivo e importe-o no outro.</p>
+  function settingsPage(){return `<section class="section-top"><div class="eyebrow">Para aprender com conforto</div><h1>Ajustes de acessibilidade</h1><p>Escolha como prefere ver e ouvir suas aulas. Suas opções ficam salvas neste navegador.</p></section>
+    <section class="card padding-card"><h2>Aparência</h2><div class="setting-row"><span class="subtle small">Escolha o tema, ou acompanhe o tema do seu aparelho.</span><div class="segmented" role="group" aria-label="Tema de cores">${[['auto','Automático'],['light','Claro'],['dark','Escuro']].map(([v,name])=>`<button type="button" aria-pressed="${state.theme===v}" data-action="theme" data-value="${v}">${name}</button>`).join('')}</div></div>
+    <h2 style="margin-top:25px">Tamanho das letras</h2><div class="setting-row"><span class="subtle small">Aumentar letras e espaços do conteúdo</span><div class="segmented" role="group" aria-label="Tamanho das letras">${[['normal','Normal'],['large','Grande'],['xlarge','Muito grande']].map(([v,name])=>`<button type="button" aria-pressed="${state.textScale===v}" data-action="text-size" data-value="${v}">${name}</button>`).join('')}</div></div>
+    <h2 style="margin-top:25px">Contraste</h2><div class="setting-row"><span class="subtle small">Aumentar o contraste entre textos e fundos</span><div class="segmented" role="group" aria-label="Contraste">${[['normal','Padrão'],['high','Alto contraste']].map(([v,name])=>`<button type="button" aria-pressed="${state.contrast===v}" data-action="contrast" data-value="${v}">${name}</button>`).join('')}</div></div>
+    <h2 style="margin-top:25px">Leitura em voz alta</h2><p class="small subtle">Escolha a voz e a velocidade. As vozes variam conforme o dispositivo; a qualidade não depende do Cívica.</p><div class="voice-settings voice-settings-wide"><label>Voz ${voiceSelect()}</label><label>Velocidade ${voiceSpeedSelect()}</label></div>
+    <div class="notice" style="margin-top:22px"><strong>Explicação bem fácil e minidicionário</strong>Em cada aula, você pode alternar o tipo de explicação e tocar nas palavras pontilhadas para descobrir seu significado.</div></section>
+    <section class="card padding-card" style="margin-top:18px"><h2>Seu progresso</h2><p class="small subtle" style="margin:10px 0">Suas respostas, XP e preferências ficam neste navegador. Para trocar de aparelho, exporte e importe seu arquivo.</p>
     <div class="btn-row"><button class="btn btn-secondary" data-action="export">${icon('download')} Exportar progresso</button><label class="btn btn-secondary" for="import-progress" style="cursor:pointer">${icon('book')} Importar progresso</label><input id="import-progress" type="file" accept="application/json,.json" class="sr-only" aria-label="Selecionar arquivo de progresso"></div>
     <div style="margin-top:24px"><button class="btn btn-secondary" data-action="reset">Apagar todo o progresso</button></div></section>`;}
   function aboutPage(){return `<section class="section-top"><div class="eyebrow">Sobre o projeto</div><h1>Uma escola de cidadania para todos.</h1><p>O Cívica nasce da ideia de que aprender como a sociedade funciona não deveria exigir experiência política, dinheiro nem paciência para navegar em sites difíceis.</p></section>
     <div class="main-stack" style="max-width:820px"><div class="card padding-card"><h2>O que defendemos</h2><div class="fact-list"><div class="fact"><span class="fact-index">1</span><div><h3>Acesso universal</h3><p>Conteúdo gratuito, sem publicidade e com linguagem clara, pensado especialmente em quem está começando.</p></div></div><div class="fact"><span class="fact-index">2</span><div><h3>Fontes rastreáveis</h3><p>Explicações e respostas apontam para documentos públicos, com data da revisão editorial e acesso aos links originais.</p></div></div><div class="fact"><span class="fact-index">3</span><div><h3>Independência política</h3><p>Sem endossar partidos, candidatos ou posições. As provas abordam fatos verificáveis e funcionamento institucional.</p></div></div><div class="fact"><span class="fact-index">4</span><div><h3>Privacidade</h3><p>Esta versão não pede nome, CPF, email ou cadastro. O progresso fica neste navegador e pode ser exportado ou apagado.</p></div></div></div></div>
-    <div class="callout"><h3>O Cívica ainda está começando.</h3><p>A versão v0.1.0-alpha oferece educação básica e atalhos oficiais. Ainda não consulta automaticamente políticos, processos judiciais ou despesas individuais. Seu conteúdo pode ser aperfeiçoado e deve passar por revisões editoriais contínuas.</p><a class="btn btn-primary" href="#aulas">Explorar aulas ${icon('arrow')}</a></div></div>`;}
+    <div class="callout"><h3>O Cívica ainda está começando.</h3><p>A versão v0.2.0-alpha oferece educação básica, explicação bem fácil, minidicionário, quadrinhos e atalhos oficiais. Ainda não consulta automaticamente políticos, processos judiciais ou despesas individuais. Seu conteúdo pode ser aperfeiçoado e deve passar por revisões editoriais contínuas.</p><a class="btn btn-primary" href="#aulas">Explorar aulas ${icon('arrow')}</a></div></div>`;}
   function route() {
     const hash = decodeURIComponent(location.hash.slice(1) || 'inicio');
     const [view,...rest] = hash.split('/'); const id=rest.join('/');
     return {view,id};
   }
-  function stopAudio() {if ('speechSynthesis' in window) window.speechSynthesis.cancel(); speaking=false;}
+  function clearHighlight(){document.querySelectorAll('[data-narration-index]').forEach(el=>el.classList.remove('reading-now'));}
+  function highlightAudio(){clearHighlight();if(audio.playing&&!audio.paused)document.querySelector(`[data-narration-index="${audio.index}"]`)?.classList.add('reading-now');}
+  function stopAudio(){audio.generation++;try{window.speechSynthesis?.cancel();}catch(_){}audio.playing=false;audio.paused=false;audio.id=null;audio.chunks=[];audio.index=0;clearHighlight();}
+  function speechChunks(l){
+    const e=EXTRA.easy[l.id];
+    return state.easyMode?[e.summary,e.comparison]:[l.intro,...l.facts.map(f=>`${f.title}. ${f.text}`),l.example];
+  }
+  function narrateNext(gen){
+    if(gen!==audio.generation||!audio.playing||audio.paused)return;
+    if(audio.index>=audio.chunks.length){audio.playing=false;audio.id=null;clearHighlight();render();announce('Leitura concluída.');return;}
+    const utterance=new SpeechSynthesisUtterance(audio.chunks[audio.index]);
+    utterance.lang='pt-BR';utterance.rate=state.voiceRate;utterance.pitch=1;
+    const voice=window.speechSynthesis.getVoices().find(v=>v.name+'|'+v.lang===state.voiceKey);
+    if(voice) utterance.voice=voice;
+    utterance.onend=()=>{if(gen!==audio.generation||!audio.playing)return;audio.index++;highlightAudio();narrateNext(gen);};
+    utterance.onerror=(event)=>{if(gen!==audio.generation)return;if(event.error==='canceled'||event.error==='interrupted')return;stopAudio();render();announce('A leitura foi interrompida pelo navegador. Tente outra voz.');};
+    highlightAudio();
+    try{window.speechSynthesis.speak(utterance);}catch(_){stopAudio();render();announce('Não foi possível iniciar a leitura.');}
+  }
+  function audioPlay(id){
+    if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){announce('O aparelho não oferece leitura em voz alta neste navegador.');return;}
+    const l=getLesson(id);if(!l)return;
+    stopAudio();audio.id=id;audio.playing=true;audio.chunks=speechChunks(l);audio.index=0;
+    const gen=audio.generation;render();narrateNext(gen);
+  }
+  function audioPause(){
+    if(!audio.playing)return;
+    try{if(audio.paused){window.speechSynthesis.resume();audio.paused=false;}else{window.speechSynthesis.pause();audio.paused=true;}}catch(_){announce('Pausa indisponível neste navegador.');return;}
+    render();highlightAudio();
+  }
   let lastRouteKey='';
   function render() {
     const r=route(); const key = `${r.view}/${r.id}`;
@@ -262,6 +346,7 @@
     else {if (location.hash !== '#inicio') {location.replace('#inicio');return;}main=homePage();}
     app.innerHTML=chrome(main,active);
     if (r.view==='aulas') renderFilteredLessons();
+    highlightAudio();
     document.title = `${({inicio:'Início',aulas:'Aulas',aula:getLesson(r.id)?.title,quiz:'Miniprova',resultado:'Resultado',direitos:'Na prática',conquistas:'Meu nível',fontes:'Fontes',ajustes:'Ajustes',sobre:'Sobre'}[r.view]||'Cívica')} · Cívica`;
   }
   function navigate(hash){if(location.hash===hash){render();window.scrollTo({top:0,behavior:'instant'});}else location.hash=hash;}
@@ -281,25 +366,23 @@
   async function share(){const s=computed();const txt=`🏅 Sou nível ${s.level} (${badgeFor(s.level)}) no Cívica!\nJá concluí ${s.count} de ${s.total} aulas de cidadania.\nAprender política é aprender a participar.\nProjeto educativo gratuito, com fontes oficiais.`;
     try{await navigator.clipboard.writeText(txt);announce('Mensagem copiada! Cole no WhatsApp ou onde quiser.');}
     catch(_){const t=document.createElement('textarea');t.value=txt;t.style.position='fixed';t.style.opacity='0';document.body.appendChild(t);t.select();const ok=document.execCommand('copy');t.remove();announce(ok?'Mensagem copiada!':'Não foi possível copiar. Verifique a permissão do navegador.');}}
-  function speakLesson(id){
-    if(!('speechSynthesis' in window)||!('SpeechSynthesisUtterance' in window)){announce('Leitura em voz alta indisponível neste navegador.');return;}
-    if(speaking){stopAudio();render();return;}
-    const l=getLesson(id);if(!l)return;
-    const txt=[l.title,l.subtitle,l.intro,...l.facts.flatMap(f=>[f.title,f.text]),'Exemplo:',l.example,'Missão prática opcional:',l.mission].join('. ');
-    window.speechSynthesis.cancel();
-    const u=new SpeechSynthesisUtterance(txt);u.lang='pt-BR';u.rate=.88;u.pitch=1;
-    const pt=window.speechSynthesis.getVoices().find(v=>v.lang.toLowerCase().startsWith('pt-br'));
-    if(pt)u.voice=pt;
-    u.onend=()=>{speaking=false;const button=document.querySelector('[data-action="audio"]');if(button){button.innerHTML=`${icon('speaker')} Ouvir esta aula`;}};
-    u.onerror=()=>{speaking=false;announce('Não foi possível usar a voz do aparelho.');const button=document.querySelector('[data-action="audio"]');if(button)button.innerHTML=`${icon('speaker')} Ouvir esta aula`;};
-    speaking=true;window.speechSynthesis.speak(u);render();
-  }
   function exportProgress(){const blob=new Blob([JSON.stringify({format:'civica-v1',exportedAt:new Date().toISOString(),progress:state},null,2)],{type:'application/json'});const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='civica-meu-progresso.json';document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);announce('Arquivo de progresso preparado para baixar.');}
   async function importProgress(file){if(!file)return;try{if(file.size>100000)throw Error('Arquivo grande demais');const parsed=JSON.parse(await file.text());if(parsed.format!=='civica-v1'||!parsed.progress||typeof parsed.progress!=='object')throw Error('Formato inválido');if(!confirm('Importar este arquivo? O progresso salvo neste navegador será substituído.'))return;
       localStorage.setItem(STORAGE_KEY,JSON.stringify(parsed.progress));state=loadState();render();announce('Progresso importado com sucesso.');}
     catch(_){alert('Não foi possível importar. Selecione um arquivo de progresso exportado pelo Cívica.');}}
   app.addEventListener('input', e=>{if(e.target.id==='lesson-search'){searchQuery=e.target.value;renderFilteredLessons();}});
-  app.addEventListener('change',e=>{if(e.target.id==='import-progress'){importProgress(e.target.files?.[0]);e.target.value='';}});
+  app.addEventListener('change',e=>{
+    if(e.target.id==='import-progress'){importProgress(e.target.files?.[0]);e.target.value='';}
+    if(e.target.id==='voice-select'){state.voiceKey=e.target.value;saveState();announce('Voz selecionada. A próxima parte da narração usará esta voz.');}
+    if(e.target.id==='voice-speed'){state.voiceRate=Number(e.target.value);saveState();announce('Velocidade de leitura atualizada.');}
+  });
+  const modal=document.getElementById('glossary-modal');
+  modal?.querySelector('[data-close-glossary]')?.addEventListener('click',()=>modal.close());
+  modal?.addEventListener('click',e=>{if(e.target===modal)modal.close();});
+  window.matchMedia?.('(prefers-color-scheme: dark)').addEventListener?.('change',()=>{if(state.theme==='auto')render();});
+  window.speechSynthesis?.addEventListener?.('voiceschanged',()=>{
+    document.querySelectorAll('#voice-select').forEach(sel=>{sel.outerHTML=voiceSelect();});
+  });
   app.addEventListener('click',e=>{
     const btn=e.target.closest('[data-action]');if(!btn)return;
     const act=btn.dataset.action;
@@ -309,12 +392,19 @@
     else if(act==='check-answer')checkAnswer();
     else if(act==='next-question')nextQuestion();
     else if(act==='share')share();
-    else if(act==='audio')speakLesson(btn.dataset.id);
+    else if(act==='audio-play')audioPlay(btn.dataset.id);
+    else if(act==='audio-pause')audioPause();
+    else if(act==='audio-stop'){stopAudio();render();announce('Leitura parada.');}
+    else if(act==='easy-mode'){stopAudio();state.easyMode=btn.dataset.value==='true';saveState();render();announce(state.easyMode?'Explicação bem fácil ativada.':'Explicação normal ativada.');}
+    else if(act==='glossary')glossaryOpen(btn.dataset.term,btn);
+    else if(act==='theme'){state.theme=btn.dataset.value;saveState();render();announce('Tema atualizado.');}
+    else if(act==='toggle-theme'){state.theme=document.documentElement.dataset.theme==='dark'?'light':'dark';saveState();render();announce(state.theme==='dark'?'Modo escuro':'Modo claro');}
     else if(act==='text-size'){state.textScale=btn.dataset.value;saveState();render();announce('Tamanho de letra atualizado.');}
     else if(act==='contrast'){state.contrast=btn.dataset.value;saveState();render();announce('Contraste atualizado.');}
     else if(act==='export')exportProgress();
     else if(act==='reset' && confirm('Apagar todas as aulas concluídas e os pontos deste navegador? Esta ação não pode ser desfeita.')){state.completed={};saveState();render();announce('Progresso apagado.');}
   });
+  syncSettings();
   render();
   if('serviceWorker' in navigator && (location.protocol==='https:' || location.hostname==='localhost' || location.hostname==='127.0.0.1')){
     window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js').catch(()=>{}));

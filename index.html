@@ -23,7 +23,17 @@
     <main class="boot-fallback"><h1>Cívica</h1><p>Preparando sua jornada de aprendizado…</p><noscript>Ative o JavaScript no navegador para usar o aplicativo.</noscript></main>
   </div>
   <div id="live-status" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+  <dialog id="glossary-modal" class="glossary-modal" aria-labelledby="glossary-title" aria-describedby="glossary-definition">
+    <div class="modal-card">
+      <span class="eyebrow">📖 Minidicionário Cívica</span>
+      <h2 id="glossary-title">Palavra</h2>
+      <p id="glossary-definition">Explicação breve da palavra.</p>
+      <a id="glossary-source" class="source-link" href="#" target="_blank" rel="noopener noreferrer">Ver fonte oficial</a>
+      <div class="btn-row"><button type="button" class="btn btn-primary" data-close-glossary>Entendi! Fechar</button></div>
+    </div>
+  </dialog>
   <script src="./content.js" defer></script>
+  <script src="./extras.js" defer></script>
   <script src="./app.js" defer></script>
 </body>
 </html>

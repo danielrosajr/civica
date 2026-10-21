@@ -1,5 +1,5 @@
-const CACHE = 'civica-v0.1.0-alpha-1';
-const APP_ASSETS = ['./','./index.html','./styles.css','./app.js','./content.js','./manifest.webmanifest','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png'];
+const CACHE = 'civica-v0.2.0-alpha-1';
+const APP_ASSETS = ['./','./index.html','./styles.css','./app.js','./content.js','./extras.js','./manifest.webmanifest','./assets/icon.svg','./assets/icon-192.png','./assets/icon-512.png','./assets/quadrinhos-cidade-1.webp','./assets/quadrinhos-cidade-2.webp','./assets/quadrinhos-cidade-3.webp','./assets/quadrinhos-cidade-4.webp'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(APP_ASSETS)).then(() => self.skipWaiting()));
